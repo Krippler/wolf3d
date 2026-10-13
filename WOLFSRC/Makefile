@@ -74,11 +74,24 @@ $(O)/data/signon.c: OBJ/SIGNON.OBJ $(O)/obj2c | $(O)/data
 $(O)/obj2c: tools/obj2c.c | $(O)
 	$(CC) -O2 -o $@ $<
 
-$(O)/wolf3d: $(addprefix $(O)/wl6/,$(addsuffix .o,$(GAME) $(SYS))) \
+# Every actor state, for the savegames: see tools/mkstates.sh
+$(O)/wl6/states.c: WL_*.C *.H tools/mkstates.sh | $(O)/wl6
+	sh tools/mkstates.sh $(CC) $(CPPFLAGS) > $@
+
+$(O)/wl1/states.c: WL_*.C *.H tools/mkstates.sh | $(O)/wl1
+	sh tools/mkstates.sh $(CC) $(CPPFLAGS) -DWOLF_WL1 > $@
+
+$(O)/wl6/states.o: $(O)/wl6/states.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(O)/wl1/states.o: $(O)/wl1/states.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(O)/wolf3d: $(addprefix $(O)/wl6/,$(addsuffix .o,$(GAME) $(SYS) states)) \
 		$(O)/opl3.o $(addprefix $(O)/data/,$(addsuffix .o,$(DATA)))
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-$(O)/wolf3d-wl1: $(addprefix $(O)/wl1/,$(addsuffix .o,$(GAME) $(SYS))) \
+$(O)/wolf3d-wl1: $(addprefix $(O)/wl1/,$(addsuffix .o,$(GAME) $(SYS) states)) \
 		$(O)/opl3.o $(addprefix $(O)/data/,$(addsuffix .o,$(DATA)))
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
 

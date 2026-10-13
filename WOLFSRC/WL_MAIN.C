@@ -298,6 +298,209 @@ int32_t DoChecksum(byte far *source,unsigned size,int32_t checksum)
 
 
 /*
+=============================================================================
+
+							SAVEGAMES
+
+	The original wrote the game's structures to the file as they lay in
+	memory, pointers and all. A near pointer was an offset into the data
+	segment, the same every time that EXE ran, so that worked. A pointer
+	here is 64 bits and moves from one build of the engine to the next, so
+	every pointer is written as what it points at instead:
+
+	  - an actor's state as its place in allstates[], the table of every
+		state the build has, sorted by name (tools/mkstates.sh);
+	  - actorat[][], which holds actors, door numbers and plain wall
+		values, as a 16-bit word: the value itself below 256, an actor's
+		index in objlist with the top bit set;
+	  - laststatobj as an index, and each static's visspot as an offset
+		into spotvis.
+
+	Actors and statics are written field by field in fixed sizes. The rest
+	-- gamestate, the level ratios, the tile map, doors and pushwall -- has
+	no pointers in it and goes as it is, as it did.
+
+	A header ahead of it all says what wrote it, so a savegame from DOS or
+	from a build whose states differ is turned away rather than read as
+	nonsense.
+
+=============================================================================
+*/
+
+extern	statetype	*allstates[];
+extern	int			numstates;
+
+#define SAVEMAGIC	"WOLFLNX1"
+
+typedef struct
+{
+	char		magic[8];
+	int32_t		numstates;
+	int32_t		objsize;			// sizeof(savedobj_t), in case it changes
+} saveheader_t;
+
+typedef struct
+{
+	int32_t		active,ticcount,obclass,state;
+	int32_t		flags,distance,dir;
+	int32_t		x,y,tilex,tiley,areanumber;
+	int32_t		viewx,viewheight,transx,transy;
+	int32_t		angle,hitpoints,speed;
+	int32_t		temp1,temp2,temp3;
+} savedobj_t;
+
+typedef struct
+{
+	int16_t		tilex,tiley;
+	int16_t		visspot;			// offset into spotvis
+	int16_t		shapenum;
+	int16_t		flags,itemnumber;
+} savedstat_t;
+
+static int StateIndex (statetype *state)
+{
+	int	i;
+
+	for (i=0;i<numstates;i++)
+		if (allstates[i] == state)
+			return i;
+	return -1;
+}
+
+static void SaveObj (objtype *ob, savedobj_t *s)
+{
+	memset (s,0,sizeof(*s));
+	s->active = ob->active;
+	s->ticcount = ob->ticcount;
+	s->obclass = ob->obclass;
+	s->state = ob->state ? StateIndex (ob->state) : -1;
+	s->flags = ob->flags;
+	s->distance = ob->distance;
+	s->dir = ob->dir;
+	s->x = ob->x;
+	s->y = ob->y;
+	s->tilex = ob->tilex;
+	s->tiley = ob->tiley;
+	s->areanumber = ob->areanumber;
+	s->viewx = ob->viewx;
+	s->viewheight = ob->viewheight;
+	s->transx = ob->transx;
+	s->transy = ob->transy;
+	s->angle = ob->angle;
+	s->hitpoints = ob->hitpoints;
+	s->speed = ob->speed;
+	s->temp1 = ob->temp1;
+	s->temp2 = ob->temp2;
+	s->temp3 = ob->temp3;
+}
+
+// Into an actor already linked into the list: the links are left alone
+static void LoadObj (savedobj_t *s, objtype *ob)
+{
+	ob->active = s->active;
+	ob->ticcount = s->ticcount;
+	ob->obclass = s->obclass;
+	ob->state = (s->state >= 0 && s->state < numstates) ? allstates[s->state] : NULL;
+	ob->flags = s->flags;
+	ob->distance = s->distance;
+	ob->dir = s->dir;
+	ob->x = s->x;
+	ob->y = s->y;
+	ob->tilex = s->tilex;
+	ob->tiley = s->tiley;
+	ob->areanumber = s->areanumber;
+	ob->viewx = s->viewx;
+	ob->viewheight = s->viewheight;
+	ob->transx = s->transx;
+	ob->transy = s->transy;
+	ob->angle = s->angle;
+	ob->hitpoints = s->hitpoints;
+	ob->speed = s->speed;
+	ob->temp1 = s->temp1;
+	ob->temp2 = s->temp2;
+	ob->temp3 = s->temp3;
+}
+
+static void SaveActorAt (word *out)
+{
+	int			i;
+	uintptr_t	v;
+
+	for (i=0;i<MAPSIZE*MAPSIZE;i++)
+	{
+		v = (uintptr_t)(&actorat[0][0])[i];
+		if (v < 256)
+			out[i] = v;
+		else
+			out[i] = 0x8000 | ((objtype *)v - objlist);
+	}
+}
+
+static void LoadActorAt (word *in)
+{
+	int		i;
+
+	for (i=0;i<MAPSIZE*MAPSIZE;i++)
+	{
+		if (in[i] & 0x8000)
+			(&actorat[0][0])[i] = (in[i] & 0x7fff) < MAXACTORS ? &objlist[in[i] & 0x7fff] : NULL;
+		else
+			(&actorat[0][0])[i] = (objtype *)(uintptr_t)in[i];
+	}
+}
+
+static void SaveStats (savedstat_t *out)
+{
+	int		i;
+
+	for (i=0;i<MAXSTATS;i++)
+	{
+		statobj_t	*st = &statobjlist[i];
+
+		out[i].tilex = st->tilex;
+		out[i].tiley = st->tiley;
+		out[i].visspot = st->visspot ? st->visspot - &spotvis[0][0] : -1;
+		out[i].shapenum = st->shapenum;
+		out[i].flags = st->flags;
+		out[i].itemnumber = st->itemnumber;
+	}
+}
+
+static void LoadStats (savedstat_t *in)
+{
+	int		i;
+
+	for (i=0;i<MAXSTATS;i++)
+	{
+		statobj_t	*st = &statobjlist[i];
+
+		st->tilex = in[i].tilex;
+		st->tiley = in[i].tiley;
+		st->visspot = (in[i].visspot >= 0 && in[i].visspot < MAPSIZE*MAPSIZE)
+			? &spotvis[0][0] + in[i].visspot : &spotvis[0][0];
+		st->shapenum = in[i].shapenum;
+		st->flags = in[i].flags;
+		st->itemnumber = in[i].itemnumber;
+	}
+}
+
+//
+// Both the writing and the checksum, which the original did in pairs for
+// every block
+//
+static int32_t SaveBlock (int file, void *data, unsigned size, int32_t checksum)
+{
+	CA_FarWrite (file,(byte far *)data,size);
+	return DoChecksum ((byte far *)data,size,checksum);
+}
+
+static int32_t LoadBlock (int file, void *data, unsigned size, int32_t checksum)
+{
+	CA_FarRead (file,(byte far *)data,size);
+	return DoChecksum ((byte far *)data,size,checksum);
+}
+
+/*
 ==================
 =
 = SaveTheGame
@@ -307,29 +510,38 @@ int32_t DoChecksum(byte far *source,unsigned size,int32_t checksum)
 
 boolean SaveTheGame(int file,int x,int y)
 {
-	int32_t avail,size,checksum;
-	objtype *ob,nullobj;
-
+	int32_t			avail,size,checksum;
+	objtype			*ob;
+	saveheader_t	header;
+	savedobj_t		sob;
+	static word		savedactorat[MAPSIZE*MAPSIZE];
+	static savedstat_t	savedstats[MAXSTATS];
+	int32_t			laststat;
+	int				count;
 
 	avail = SYS_DiskFree ();
 
-	size = 0;
+	count = 0;
 	for (ob = player; ob ; ob=ob->next)
-	  size += sizeof(*ob);
-	size += sizeof(nullobj);
+	  count++;
 
-	size += sizeof(gamestate) +
+	size = sizeof(header) + sizeof(gamestate) +
 			sizeof(LRstruct)*8 +
 			sizeof(tilemap) +
-			sizeof(actorat) +
-			sizeof(laststatobj) +
-			sizeof(statobjlist) +
+			sizeof(savedactorat) +
+			sizeof(areaconnect) +
+			sizeof(areabyplayer) +
+			(count+1) * sizeof(sob) +
+			sizeof(laststat) +
+			sizeof(savedstats) +
 			sizeof(doorposition) +
+			sizeof(doorobjlist) +
 			sizeof(pwallstate) +
 			sizeof(pwallx) +
 			sizeof(pwally) +
 			sizeof(pwalldir) +
-			sizeof(pwallpos);
+			sizeof(pwallpos) +
+			sizeof(checksum);
 
 	if (avail < size)
 	{
@@ -340,26 +552,26 @@ boolean SaveTheGame(int file,int x,int y)
 
 	checksum = 0;
 
+	memcpy (header.magic,SAVEMAGIC,8);
+	header.numstates = numstates;
+	header.objsize = sizeof(savedobj_t);
+	CA_FarWrite (file,(void far *)&header,sizeof(header));
 
 	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)&gamestate,sizeof(gamestate));
-	checksum = DoChecksum((byte far *)&gamestate,sizeof(gamestate),checksum);
+	checksum = SaveBlock (file,&gamestate,sizeof(gamestate),checksum);
 
 	DiskFlopAnim(x,y);
 #ifdef SPEAR
-	CA_FarWrite (file,(void far *)&LevelRatios[0],sizeof(LRstruct)*20);
-	checksum = DoChecksum((byte far *)&LevelRatios[0],sizeof(LRstruct)*20,checksum);
+	checksum = SaveBlock (file,&LevelRatios[0],sizeof(LRstruct)*20,checksum);
 #else
-	CA_FarWrite (file,(void far *)&LevelRatios[0],sizeof(LRstruct)*8);
-	checksum = DoChecksum((byte far *)&LevelRatios[0],sizeof(LRstruct)*8,checksum);
+	checksum = SaveBlock (file,&LevelRatios[0],sizeof(LRstruct)*8,checksum);
 #endif
 
 	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)tilemap,sizeof(tilemap));
-	checksum = DoChecksum((byte far *)tilemap,sizeof(tilemap),checksum);
+	checksum = SaveBlock (file,tilemap,sizeof(tilemap),checksum);
 	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)actorat,sizeof(actorat));
-	checksum = DoChecksum((byte far *)actorat,sizeof(actorat),checksum);
+	SaveActorAt (savedactorat);
+	checksum = SaveBlock (file,savedactorat,sizeof(savedactorat),checksum);
 
 	CA_FarWrite (file,(void far *)areaconnect,sizeof(areaconnect));
 	CA_FarWrite (file,(void far *)areabyplayer,sizeof(areabyplayer));
@@ -367,39 +579,32 @@ boolean SaveTheGame(int file,int x,int y)
 	for (ob = player ; ob ; ob=ob->next)
 	{
 	 DiskFlopAnim(x,y);
-	 CA_FarWrite (file,(void far *)ob,sizeof(*ob));
+	 SaveObj (ob,&sob);
+	 CA_FarWrite (file,(void far *)&sob,sizeof(sob));
 	}
-	nullobj.active = ac_badobject;          // end of file marker
+	memset (&sob,0,sizeof(sob));
+	sob.active = ac_badobject;          // end of file marker
 	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)&nullobj,sizeof(nullobj));
-
-
-
-	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)&laststatobj,sizeof(laststatobj));
-	checksum = DoChecksum((byte far *)&laststatobj,sizeof(laststatobj),checksum);
-	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)statobjlist,sizeof(statobjlist));
-	checksum = DoChecksum((byte far *)statobjlist,sizeof(statobjlist),checksum);
+	CA_FarWrite (file,(void far *)&sob,sizeof(sob));
 
 	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)doorposition,sizeof(doorposition));
-	checksum = DoChecksum((byte far *)doorposition,sizeof(doorposition),checksum);
+	laststat = laststatobj - statobjlist;
+	checksum = SaveBlock (file,&laststat,sizeof(laststat),checksum);
 	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)doorobjlist,sizeof(doorobjlist));
-	checksum = DoChecksum((byte far *)doorobjlist,sizeof(doorobjlist),checksum);
+	SaveStats (savedstats);
+	checksum = SaveBlock (file,savedstats,sizeof(savedstats),checksum);
 
 	DiskFlopAnim(x,y);
-	CA_FarWrite (file,(void far *)&pwallstate,sizeof(pwallstate));
-	checksum = DoChecksum((byte far *)&pwallstate,sizeof(pwallstate),checksum);
-	CA_FarWrite (file,(void far *)&pwallx,sizeof(pwallx));
-	checksum = DoChecksum((byte far *)&pwallx,sizeof(pwallx),checksum);
-	CA_FarWrite (file,(void far *)&pwally,sizeof(pwally));
-	checksum = DoChecksum((byte far *)&pwally,sizeof(pwally),checksum);
-	CA_FarWrite (file,(void far *)&pwalldir,sizeof(pwalldir));
-	checksum = DoChecksum((byte far *)&pwalldir,sizeof(pwalldir),checksum);
-	CA_FarWrite (file,(void far *)&pwallpos,sizeof(pwallpos));
-	checksum = DoChecksum((byte far *)&pwallpos,sizeof(pwallpos),checksum);
+	checksum = SaveBlock (file,doorposition,sizeof(doorposition),checksum);
+	DiskFlopAnim(x,y);
+	checksum = SaveBlock (file,doorobjlist,sizeof(doorobjlist),checksum);
+
+	DiskFlopAnim(x,y);
+	checksum = SaveBlock (file,&pwallstate,sizeof(pwallstate),checksum);
+	checksum = SaveBlock (file,&pwallx,sizeof(pwallx),checksum);
+	checksum = SaveBlock (file,&pwally,sizeof(pwally),checksum);
+	checksum = SaveBlock (file,&pwalldir,sizeof(pwalldir),checksum);
+	checksum = SaveBlock (file,&pwallpos,sizeof(pwallpos),checksum);
 
 	//
 	// WRITE OUT CHECKSUM
@@ -421,82 +626,98 @@ boolean SaveTheGame(int file,int x,int y)
 
 boolean LoadTheGame(int file,int x,int y)
 {
-	int32_t checksum,oldchecksum;
-	objtype *ob,nullobj;
+	int32_t			checksum,oldchecksum;
+	objtype			*ob;
+	saveheader_t	header;
+	savedobj_t		sob;
+	static word		savedactorat[MAPSIZE*MAPSIZE];
+	static savedstat_t	savedstats[MAXSTATS];
+	int32_t			laststat;
 
+	//
+	// A savegame this engine did not write: from DOS, whose layout was
+	// nothing like this one, or from a build with a different set of
+	// states. Say so, and start a new game rather than read it.
+	//
+	if (!CA_FarRead (file,(void far *)&header,sizeof(header))
+	|| memcmp (header.magic,SAVEMAGIC,8)
+	|| header.numstates != numstates
+	|| header.objsize != sizeof(savedobj_t))
+	{
+	 Message("This game was saved by\n"
+			 "another version, and\n"
+			 "cannot be loaded here.");
+	 IN_ClearKeysDown();
+	 IN_Ack();
+
+	 NewGame (gamestate.difficulty,0);
+	 SetupGameLevel ();
+	 return false;
+	}
 
 	checksum = 0;
 
 	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)&gamestate,sizeof(gamestate));
-	checksum = DoChecksum((byte far *)&gamestate,sizeof(gamestate),checksum);
+	checksum = LoadBlock (file,&gamestate,sizeof(gamestate),checksum);
 
 	DiskFlopAnim(x,y);
 #ifdef SPEAR
-	CA_FarRead (file,(void far *)&LevelRatios[0],sizeof(LRstruct)*20);
-	checksum = DoChecksum((byte far *)&LevelRatios[0],sizeof(LRstruct)*20,checksum);
+	checksum = LoadBlock (file,&LevelRatios[0],sizeof(LRstruct)*20,checksum);
 #else
-	CA_FarRead (file,(void far *)&LevelRatios[0],sizeof(LRstruct)*8);
-	checksum = DoChecksum((byte far *)&LevelRatios[0],sizeof(LRstruct)*8,checksum);
+	checksum = LoadBlock (file,&LevelRatios[0],sizeof(LRstruct)*8,checksum);
 #endif
 
 	DiskFlopAnim(x,y);
 	SetupGameLevel ();
 
 	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)tilemap,sizeof(tilemap));
-	checksum = DoChecksum((byte far *)tilemap,sizeof(tilemap),checksum);
+	checksum = LoadBlock (file,tilemap,sizeof(tilemap),checksum);
 	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)actorat,sizeof(actorat));
-	checksum = DoChecksum((byte far *)actorat,sizeof(actorat),checksum);
+	checksum = LoadBlock (file,savedactorat,sizeof(savedactorat),checksum);
 
 	CA_FarRead (file,(void far *)areaconnect,sizeof(areaconnect));
 	CA_FarRead (file,(void far *)areabyplayer,sizeof(areabyplayer));
 
-
-
 	InitActorList ();
 	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)player,sizeof(*player));
+	CA_FarRead (file,(void far *)&sob,sizeof(sob));
+	LoadObj (&sob,player);
 
 	while (1)
 	{
 	 DiskFlopAnim(x,y);
-		CA_FarRead (file,(void far *)&nullobj,sizeof(nullobj));
-		if (nullobj.active == ac_badobject)
+		if (!CA_FarRead (file,(void far *)&sob,sizeof(sob)))
+			break;
+		if (sob.active == ac_badobject)
 			break;
 		GetNewActor ();
 	 // don't copy over the links
-		memcpy (new,&nullobj,sizeof(nullobj)-4);
+		LoadObj (&sob,new);
 	}
 
-
-
-	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)&laststatobj,sizeof(laststatobj));
-	checksum = DoChecksum((byte far *)&laststatobj,sizeof(laststatobj),checksum);
-	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)statobjlist,sizeof(statobjlist));
-	checksum = DoChecksum((byte far *)statobjlist,sizeof(statobjlist),checksum);
+	// Only now, with the actors where the indexes say
+	LoadActorAt (savedactorat);
 
 	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)doorposition,sizeof(doorposition));
-	checksum = DoChecksum((byte far *)doorposition,sizeof(doorposition),checksum);
+	checksum = LoadBlock (file,&laststat,sizeof(laststat),checksum);
+	if (laststat < 0 || laststat > MAXSTATS)
+		laststat = 0;
+	laststatobj = &statobjlist[laststat];
 	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)doorobjlist,sizeof(doorobjlist));
-	checksum = DoChecksum((byte far *)doorobjlist,sizeof(doorobjlist),checksum);
+	checksum = LoadBlock (file,savedstats,sizeof(savedstats),checksum);
+	LoadStats (savedstats);
 
 	DiskFlopAnim(x,y);
-	CA_FarRead (file,(void far *)&pwallstate,sizeof(pwallstate));
-	checksum = DoChecksum((byte far *)&pwallstate,sizeof(pwallstate),checksum);
-	CA_FarRead (file,(void far *)&pwallx,sizeof(pwallx));
-	checksum = DoChecksum((byte far *)&pwallx,sizeof(pwallx),checksum);
-	CA_FarRead (file,(void far *)&pwally,sizeof(pwally));
-	checksum = DoChecksum((byte far *)&pwally,sizeof(pwally),checksum);
-	CA_FarRead (file,(void far *)&pwalldir,sizeof(pwalldir));
-	checksum = DoChecksum((byte far *)&pwalldir,sizeof(pwalldir),checksum);
-	CA_FarRead (file,(void far *)&pwallpos,sizeof(pwallpos));
-	checksum = DoChecksum((byte far *)&pwallpos,sizeof(pwallpos),checksum);
+	checksum = LoadBlock (file,doorposition,sizeof(doorposition),checksum);
+	DiskFlopAnim(x,y);
+	checksum = LoadBlock (file,doorobjlist,sizeof(doorobjlist),checksum);
+
+	DiskFlopAnim(x,y);
+	checksum = LoadBlock (file,&pwallstate,sizeof(pwallstate),checksum);
+	checksum = LoadBlock (file,&pwallx,sizeof(pwallx),checksum);
+	checksum = LoadBlock (file,&pwally,sizeof(pwally),checksum);
+	checksum = LoadBlock (file,&pwalldir,sizeof(pwalldir),checksum);
+	checksum = LoadBlock (file,&pwallpos,sizeof(pwallpos),checksum);
 
 	CA_FarRead (file,(void far *)&oldchecksum,sizeof(oldchecksum));
 
