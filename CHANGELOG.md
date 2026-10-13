@@ -5,6 +5,15 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [1.3.0] — 2026-10-13
+
+### Changed
+
+- The view is the largest the game offers to begin with (19; DOS's default
+  was 15), and its size is on Settings → Picture as well as Change View.
+- Backspace does what Esc does: it opens the menu, and backs out of each
+  screen of it. Typing a savegame's name or a high score, it still rubs out.
+
 ## [1.2.0] — 2026-10-13
 
 ### Changed

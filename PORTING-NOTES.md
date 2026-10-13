@@ -287,7 +287,10 @@ effects and music, the Sound Blaster for digitized sound, and `-noal`,
 `ID_IN.C`, `sys_x11.c`, `sys_pad.c`.
 
 The keyboard handler is the original, fed bytes; see above. Pause sends
-`0xE1`, as the key did.
+`0xE1`, as the key did. Backspace is turned into Esc there, so that it opens
+the menu and backs out of each screen of it wherever Esc does, except while
+`US_LineInput` runs -- a savegame's name, a high score's -- where it is
+Backspace and rubs out (`IN_TextEntry`).
 
 The mouse driver, INT 33h, kept a pointer position of its own in a 640x200
 space and counted the mouse's motion in mickeys. The play loop asks for the
@@ -408,7 +411,10 @@ the mouse and controller behaviour the port added.
 
 They have the game's own settings too, so that there is one place for all
 of it: the main menu's Control is Settings, and F4, F6 and F12 open it.
-The Sound page sets the devices the Sound menu did, as it did; the Keys
+The Picture page sets the view's size as Change View did, the largest it
+allowed to begin with (DOS's default was 15 of 19), and remakes the view
+once, on the way out. The Sound page sets the devices the Sound menu did,
+as it did; the Keys
 page every key the Customize screen did, and the strafe keys; the Mouse
 page what the Control screen and Mouse Sensitivity did, and the mouse's
 buttons. The joystick settings went with them: the DOS joystick is not

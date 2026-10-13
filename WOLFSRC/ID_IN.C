@@ -56,6 +56,7 @@ boolean			JoyPadPresent;
 // 	Global variables
 volatile	boolean		Keyboard[NumCodes];
 volatile	boolean		Paused;
+		boolean		IN_TextEntry;	// US_LineInput is running: see INL_KeyService
 volatile	char		LastASCII;
 volatile	ScanCode	LastScan;
 
@@ -155,6 +156,17 @@ static	boolean	special;
 		Paused = true;
 	else
 	{
+		//
+		// Backspace is a second Esc -- it brings up the menu, and backs out
+		// of each level of it -- except while a line of text is typed, a
+		// savegame's name or a high score's, where it rubs out
+		//
+		if ((k & 0x7f) == sc_BackSpace && !IN_TextEntry && !special)
+		{
+			Keyboard[sc_BackSpace] = false;
+			k = (k & 0x80) | sc_Escape;
+		}
+
 		if (k & 0x80)	// Break code
 		{
 			k &= 0x7f;

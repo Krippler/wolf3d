@@ -70,8 +70,10 @@ you gave it.
 ## Playing
 
 Arrow keys move, Ctrl fires, Space opens doors, Alt strafes, Shift runs,
-1 to 4 change weapon. In the browser, <kbd>Esc</kbd> gives the mouse back
-and <kbd>`</kbd> opens the game's menu. A game controller works too -- A
+1 to 4 change weapon. <kbd>Backspace</kbd> does what <kbd>Esc</kbd> does --
+opens the menu, and backs out of each screen of it -- except while typing a
+savegame's name. In the browser, <kbd>Esc</kbd> gives the mouse back, and
+<kbd>Backspace</kbd> or <kbd>`</kbd> opens the game's menu. A game controller works too -- A
 fires, B opens, Y changes weapon, the sticks walk and turn -- and vibrates
 when you are hit.
 
@@ -82,7 +84,7 @@ Sound page, <kbd>F6</kbd> to the menu too). Its pages:
 | | |
 |---|---|
 | Game | which game to play, when there is more than one |
-| Picture | 4:3 as DOS showed it, or square pixels; on a desktop, the window's size |
+| Picture | the view's size (the largest to begin with, as Change View sets it), 4:3 as DOS showed it or square pixels, and on a desktop the window's size |
 | Sound | the effects (AdLib, PC speaker or off), the digitized sounds, the music, and the music and effects levels apart |
 | Keys | forward, backward, turn left and right, strafe left and right (<kbd>,</kbd> and <kbd>.</kbd> to begin with), fire, open, run, and the strafe button |
 | Mouse and controller | the mouse on or off, its sensitivity, whether it walks as well as turns, what its buttons do; always run, controller vibration, and holding on to the pointer |
