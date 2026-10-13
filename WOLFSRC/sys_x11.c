@@ -129,7 +129,11 @@ static keymap_t keymap[] =
 	{XK_Control_L,0x1d},
 	{XK_a,0x1e},{XK_s,0x1f},{XK_d,0x20},{XK_f,0x21},{XK_g,0x22},
 	{XK_h,0x23},{XK_j,0x24},{XK_k,0x25},{XK_l,0x26},
-	{XK_semicolon,0x27},{XK_apostrophe,0x28},{XK_grave,0x29},
+	{XK_semicolon,0x27},{XK_apostrophe,0x28},
+	// ` is Esc: in the browser Esc belongs to the page, which gives the
+	// mouse back on it, so the game's menu is on the key beside it, as it is
+	// in the DOOM container
+	{XK_grave,0x01},
 	{XK_Shift_L,0x2a},{XK_backslash,0x2b},
 	{XK_z,0x2c},{XK_x,0x2d},{XK_c,0x2e},{XK_v,0x2f},{XK_b,0x30},
 	{XK_n,0x31},{XK_m,0x32},
@@ -168,6 +172,15 @@ static void SendKey (byte code, int extended, int down)
 	else
 		held[code] = down;
 }
+
+// The controller's keys, from sys_pad.c on this same thread
+void SYS_PadKey (byte code, int extended, int down)
+{
+	SendKey (code,extended,down);
+}
+
+void	SYS_PadStart (void);
+void	SYS_PadTick (void);
 
 static void KeyEvent (XKeyEvent *ev, int down)
 {
@@ -540,6 +553,7 @@ static void *Machine (void *unused)
 		TimeCount++;
 
 		Events ();
+		SYS_PadTick ();
 		UpdateGrab ();
 		ScanOut ();
 
@@ -657,7 +671,13 @@ static void ParseSize (void)
 
 	// DOS showed 320x200 on a 4:3 monitor, so every pixel was a fifth
 	// taller than wide. Square pixels are there for anyone who wants them.
+	//
+	// Behind the browser the page does the stretching (sys_pad.c tells it
+	// which shape), so the picture crossing the network is a sixth smaller
+	// and the engine draws square pixels: WOLF_PAGE_ASPECT says so.
 	if ((env = getenv ("WOLF_ASPECT")) && !strcmp (env,"square"))
+		aspect = 0;
+	if (getenv ("WOLF_PAGE_ASPECT"))
 		aspect = 0;
 
 	winwidth = 320*scale;
@@ -821,6 +841,8 @@ void SYS_Startup (void)
 
 	lastmx = winwidth/2;
 	lastmy = winheight/2;
+
+	SYS_PadStart ();
 
 	running = 1;
 	if (pthread_create (&machine,NULL,Machine,NULL))

@@ -1,0 +1,20 @@
+# Only what the image is built from
+.git
+.github
+**/linux/
+data/
+*.png
+
+# Never a registered game's data, wherever it is in the tree: only the
+# shareware episode, by name, goes into the image.
+**/*.WL6
+**/*.wl6
+**/*.WL3
+**/*.wl3
+**/*.SOD
+**/*.sod
+**/*.SDM
+**/*.sdm
+**/*.WL1
+**/*.wl1
+!shareware/*.WL1

@@ -1474,3 +1474,28 @@ void PlayLoop (void)
 		FinishPaletteShifts ();
 }
 
+
+
+/*
+=====================
+=
+= SYS_PadNextWeapon
+=
+= For the controller's Y button (sys_pad.c): the number key of the next
+= weapon the player has, wrapping round to the knife. Nothing outside a game.
+=
+=====================
+*/
+
+int SYS_PadNextWeapon (void)
+{
+	int	next;
+
+	if (!ingame || demoplayback)
+		return 0;
+
+	next = gamestate.weapon + 1;
+	if (next > gamestate.bestweapon)
+		next = wp_knife;
+	return sc_1 + next;
+}

@@ -240,6 +240,7 @@ void	SYS_ShowNow (void);				// scan out now, not at the next tick
 void	SYS_MouseDelta (int *dx, int *dy);
 int		SYS_MouseButtons (void);
 void	SYS_SetGrab (int wanted);
+void	SYS_PadRumble (float strength, int ms);	// sys_pad.c
 void	SYS_TextScreen (const byte *screen, int rows, const char *text, int col, int row);
 const char *SYS_StateDir (void);
 

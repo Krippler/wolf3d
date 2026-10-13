@@ -404,6 +404,10 @@ void	TakeDamage (int points,objtype *attacker)
 
 	StartDamageFlash (points);
 
+	// The screen flashes red; a controller shakes as well, harder for more
+	if (!demoplayback)
+		SYS_PadRumble (points / 40.0f + 0.25f,points > 20 ? 400 : 200);
+
 	gotgatgun=0;
 
 	DrawHealth ();
