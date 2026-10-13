@@ -1,7 +1,8 @@
 # docker compose up --build, then open http://localhost:6080/
 #
 # Put your own game's files (VSWAP.WL6 and the rest) in ./data to play the
-# full six episodes; with nothing there the shareware episode plays.
+# full six episodes, or Spear of Destiny's (*.SOD, *.SD2, *.SD3); with nothing
+# there the shareware episode plays. Settings -> Game switches between them.
 services:
   wolf3d:
     build: .

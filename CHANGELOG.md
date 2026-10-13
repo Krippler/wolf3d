@@ -5,6 +5,13 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [Unreleased]
+
+### Changed
+
+- The documentation describes 1.0.0 throughout: all four engines, Spear of
+  Destiny, the Settings pages, and the published image tags.
+
 ## [1.0.0] — 2026-10-13
 
 The first version: the 1995 source release, ported to 64-bit Linux and
@@ -12,8 +19,9 @@ packaged to play in a browser.
 
 ### Added
 
-- Both engines build with gcc on 64-bit Linux and run on an X server:
-  `wolf3d` for the registered game, `wolf3d-wl1` for the shareware episode.
+- The engines build with gcc on 64-bit Linux and run on an X server:
+  `wolf3d` for the registered game, `wolf3d-wl1` for the shareware episode,
+  `wolf3d-sod` and `wolf3d-sdm` for Spear of Destiny and its demo.
 - Spear of Destiny: `wolf3d-sod` plays the full game and, with
   `WOLF_MISSION`, its mission packs (*Return to Danger*, *Ultimate
   Challenge*); `wolf3d-sdm` plays its demo. The copy protection quiz is off.

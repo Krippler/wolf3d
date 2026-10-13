@@ -43,6 +43,15 @@ plays on a current 64-bit Linux took:
   that came with the source is for version 1.0 of the shareware, from 1992.
   Every copy in circulation is version 1.4, which numbers its pictures
   differently. The header for 1.4 was worked out from the data itself.
+- **Spear of Destiny too.** The same source builds the sequel, its two
+  mission packs and its demo, given the headers that came with it; each is
+  an engine of its own, and the launchers find whichever games are there
+  and start the right one.
+- **What DOS left to the hardware, in the game's own menus.** A Settings
+  page, drawn like the rest, for what the monitor and the sound card's mixer
+  used to decide: the picture's shape and size, the music and effects levels
+  apart, and which game to play, along with how the mouse and controller
+  behave.
 - **A browser to play it in.** The DOOM container's arrangement: Xvfb,
   x11vnc and noVNC for the picture, the sound streamed to the same page, a
   page that captures the mouse, a controller read by the browser and passed

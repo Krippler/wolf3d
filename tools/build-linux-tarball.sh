@@ -2,7 +2,7 @@
 #
 # build-linux-tarball.sh VERSION [OUTDIR]
 #
-# Builds both engines and packs them with the launcher, the menu entry, the
+# Builds the four engines and packs them with the launcher, the menu entry, the
 # shareware episode and install.sh into wolf3d-linux-ARCH-VERSION.tar.gz.
 #
 # The engines are the same ones the container runs. They run on

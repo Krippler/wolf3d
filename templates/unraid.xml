@@ -37,6 +37,8 @@
   <Changes>
 ### 1.0.0
 - First release: the 1995 source release ported to 64-bit Linux, the shareware episode built in, playable in a browser with sound and a controller.
+- Spear of Destiny, its mission packs and its demo, from your own copy.
+- In-game Settings (Control menu or F12): game, picture shape, music and effects levels, mouse and controller.
   </Changes>
 
   <Config Name="WebUI Port" Target="6080" Default="6080" Mode="tcp"
