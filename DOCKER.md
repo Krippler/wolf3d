@@ -58,7 +58,8 @@ engine's are a different shape, and it says so rather than loading nonsense.
 
 The page captures the mouse, so the browser keeps <kbd>Esc</kbd>: it gives
 the mouse back and brings up the start screen. The game's menu, which is on
-Esc on DOS, is on <kbd>`</kbd> beside it. The rest are the game's own: arrow
+Esc on DOS, is on <kbd>Backspace</kbd>, which also backs out of each screen
+of it, and on <kbd>`</kbd>. The rest are the game's own: arrow
 keys move, Ctrl fires, Space opens, Alt strafes (or <kbd>,</kbd> and
 <kbd>.</kbd> on their own), Shift runs, 1 to 4 change weapon, F1 to F10 are
 what the help screen says. Every key, the mouse and the sound are set under

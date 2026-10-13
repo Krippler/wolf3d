@@ -522,6 +522,8 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 				len,temp;
 	longword	lasttime;
 
+	IN_TextEntry = true;
+
 	if (def)
 		strcpy(s,def);
 	else
@@ -682,5 +684,6 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 	VW_UpdateScreen();
 
 	IN_ClearKeysDown();
+	IN_TextEntry = false;
 	return(result);
 }

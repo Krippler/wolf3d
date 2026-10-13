@@ -2606,12 +2606,24 @@ void SettingsGame(int unused)
 
 void SettingsPicture(int unused)
 {
+	int oldview=viewsize;
+
 	numitems=0;
+	AddItem("View size",SK_LEVEL,&viewsize,4,19);
 	AddSetting("Shape",SK_CHOICE,set_shape)->choices=shapenames;
 	// The browser's page is as big as its window; a desktop's is chosen
 	if (!SYS_InBrowser())
 		AddSetting("Window size",SK_CHOICE,set_scale)->choices=scalenames;
 	SettingsPage("Picture");
+
+	// The view is remade once, on the way out, as Change View did it
+	if (viewsize!=oldview)
+	{
+		int newview=viewsize;
+
+		viewsize=oldview;
+		NewViewSize(newview);
+	}
 }
 
 //

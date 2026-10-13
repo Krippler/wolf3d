@@ -157,6 +157,7 @@ extern	volatile boolean	Keyboard[];
 extern	boolean		MousePresent,
 					JoysPresent[];
 extern	volatile boolean	Paused;
+extern	boolean		IN_TextEntry;
 extern	volatile char		LastASCII;
 extern	volatile ScanCode	LastScan;
 extern	KeyboardDef	KbdDefs;

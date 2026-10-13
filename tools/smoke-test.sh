@@ -174,6 +174,7 @@ press F12
 sleep 1.5
 press Return		# Picture: Game is not offered without a launcher
 sleep 1.5
+press Down		# past View size to Shape
 press Left
 sleep 0.5
 shot 7-settings

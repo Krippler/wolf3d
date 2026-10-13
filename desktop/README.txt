@@ -33,12 +33,12 @@ Playing
 -------
 
 Arrow keys move, Ctrl fires, Space opens doors, Alt strafes, Shift runs,
-1-4 change weapon, Esc is the menu. The mouse turns and fires too; it is
+1-4 change weapon, Esc or Backspace is the menu and backs out of it. The mouse turns and fires too; it is
 captured while you play and let go in the menus.
 
 Settings, on the main menu or F12, has everything there is to set, a page
-each: which game, the window's size and shape (4:3 as DOS showed it, or
-square pixels), the sound devices and the music and effects levels, every
+each: which game, the view's size (the largest to begin with), the window's
+size and shape (4:3 as DOS showed it, or square pixels), the sound devices and the music and effects levels, every
 key (strafe left and right are , and . to begin with), and the mouse --
 on or off, sensitivity, whether it walks as well as turns, its buttons --
 with always running, controller vibration and holding on to the pointer.
