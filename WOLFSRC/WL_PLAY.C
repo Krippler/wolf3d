@@ -380,7 +380,8 @@ void PollMouseMove (void)
 	IN_MouseMickeys(&mousexmove,&mouseymove);
 
 	controlx += mousexmove*10/(13-mouseadjustment);
-	controly += mouseymove*20/(13-mouseadjustment);
+	if (sys_setting[set_mousewalks])
+		controly += mouseymove*20/(13-mouseadjustment);
 }
 
 
@@ -524,6 +525,10 @@ void PollControls (void)
 
 	if (joystickenabled)
 		PollJoystickButtons ();
+
+	// Always run, from the Settings pages: the run button walks instead
+	if (sys_setting[set_alwaysrun])
+		buttonstate[bt_run] = !buttonstate[bt_run];
 
 //
 // get movements
@@ -794,7 +799,7 @@ void CheckKeys (void)
 		return;
 	}
 
-	if ( (scan >= sc_F1 && scan <= sc_F9) || scan == sc_Escape)
+	if ( (scan >= sc_F1 && scan <= sc_F9) || scan == sc_F12 || scan == sc_Escape)
 	{
 		StopMusic ();
 		ClearMemory ();

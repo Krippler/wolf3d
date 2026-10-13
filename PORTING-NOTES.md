@@ -271,6 +271,13 @@ The game's `pushf; cli ... popf` sections, which kept the interrupt handler
 out while it changed the handler's state, are a recursive mutex the mixer
 also takes.
 
+The one change to what was mixed: the music and the AdLib effects, which
+shared one chip -- the effects on channel 0, the music on the rest -- now
+have a chip each, so the Settings pages can set their levels apart. `alOut`,
+which the game's set-up and shut-down write through, writes to both; the
+effects' instrument and notes go to one, the music's register list to the
+other.
+
 What the game asks is the same as it was: the menu offers the AdLib for
 effects and music, the Sound Blaster for digitized sound, and `-noal`,
 `-nosb` and `-nopro` still take them away. The Sound Source never answers.
@@ -360,6 +367,55 @@ the registered game's headers, which is what the 1.4 source used.
 in `WOLF1VER.H`'s `#define UPLOAD` and the shareware header, and once
 without, for the registered game. The registered engine, given shareware
 data, says which engine plays it rather than drawing nonsense.
+
+## Spear of Destiny
+
+`VERSION.H`, `SODVER.H`, `SDMVER.H`, the Makefile.
+
+The source builds Spear with `SPEAR` defined, and its demo with `SPEARDEMO`
+too; each needs its own graphics, audio and map headers, already in the
+release (`GFXV_SOD.H`, `GFXV_SDM.H` and so on), so each is an engine of its
+own: `wolf3d-sod` and `wolf3d-sdm`. The demo's headers match the demo's
+data: 133 graphics chunks, 267 sound chunks. `WL_TEXT.C`, the help and the
+end-of-episode text, is Wolfenstein's alone and is left out.
+
+- **The mission packs.** *Return to Danger* and *Ultimate Challenge* were
+  shipped as `.SD2` and `.SD3` files read by the same SPEAR.EXE, chosen
+  with `-mission`; here `WOLF_MISSION=2` or `3`, which the launchers set.
+- **The copy protection.** Spear asked which enemy or weapon was pictured,
+  from the manual, before it started. That is off unless
+  `WOLF_COPYPROTECTION` is set; its failure path switched to text mode
+  through the BIOS, which is gone.
+- **The boss key.** F1 in Spear's play loop is a boss key, a fake DOS
+  prompt; it was compiled only for GOODTIMES, and now for Spear too.
+- **A 64-bit trap.** The code that wakes Spear's ghosts read `actorat`, an
+  object pointer or a small tile number, into an `unsigned`: a truncated
+  pointer on 64 bits. It is a `uintptr_t`.
+
+Spear was checked against its demo. The full game and the mission packs are
+the same code built against headers that came with the source, but have not
+been played here, for want of the data.
+
+## Settings
+
+`sys_settings.c`, the end of `WL_MENU.C`'s control section.
+
+DOS left the shape of the picture to the monitor, its size to nobody, and
+the balance of music and effects to the sound card's mixer program. A page
+of the game's own menus -- built from the game's window, cursor and
+checkbox pictures, so it looks like the rest -- has those, the choice of
+game, and the mouse and controller behaviour the port added. It is on the
+Control menu and on F12 (`sc_F12` was `0x59` in `ID_IN.H`; it is `0x58`).
+
+They are kept in `settings`, a text file of names and numbers, not in
+`CONFIG.WL6`, whose shape the game checks by size. A change takes effect at
+once: the machine thread remakes the window and its image at the next tick
+when the shape or size changes, and in the browser the page is told the new
+shape over the controller connection, as it is when it connects. Choosing
+another game writes it to `game` and ends with status 3, which the
+launchers -- `docker/entrypoint.sh` and `desktop/wolf3d` -- take as "start
+the engine for that one"; they say which games there are in `WOLF_GAMES`,
+so an engine started by hand offers none.
 
 ## Things DOS let the code get away with
 

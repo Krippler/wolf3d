@@ -26,8 +26,26 @@ always takes precedence over the bundled episode.
 docker run --rm -p 6080:6080 -v "$PWD/data:/data:ro" ghcr.io/krippler/wolf3d
 ```
 
-`*.WL6` (six episodes), `*.WL3` (three) and `*.WL1` (the shareware, version
-1.4) are recognised, in any case. Spear of Destiny is not, yet.
+Recognised, in any case:
+
+| Files | Game |
+|---|---|
+| `*.WL6`, `*.WL3` | Wolfenstein 3-D, six episodes or three |
+| `*.WL1` | the shareware episode, version 1.4 |
+| `*.SOD` | Spear of Destiny |
+| `*.SD2`, `*.SD3` | its mission packs, *Return to Danger* and *Ultimate Challenge* |
+| `*.SDM` | the Spear of Destiny demo |
+
+Put as many as you have in the one directory. The first in the table is
+played, and **Settings → Game** in the game switches between them (the
+choice is remembered); `WOLF_GAME=sod`, say, picks one from outside. The
+mission packs' files keep their own extension, as they came, beside the
+Spear of Destiny ones -- or alone, with the `*.SOD` files they need.
+
+Spear of Destiny was checked against its demo; the full game and the mission
+packs are built from the same code, but have not been played to the end
+here for want of the data. The demo's files are not bundled -- unlike the
+Wolfenstein shareware, they carry no terms allowing it.
 
 ## Keeping savegames and settings
 
@@ -55,10 +73,18 @@ and <kbd>`</kbd> opens the game's menu, where the keys and the mouse are set
 under Control. A game controller works too -- A fires, B opens, Y changes
 weapon, the sticks walk and turn -- and vibrates when you are hit.
 
+**Settings**, at the bottom of the Control menu or on <kbd>F12</kbd> while
+playing, holds what DOS left to the monitor and the sound card: which game
+to play, the picture's shape (4:3 as DOS showed it, or square pixels) and on
+a desktop the window's size, the music and effects levels separately, and
+whether the mouse walks as well as turns, running all the time, controller
+vibration and holding on to the pointer. Changes are made at once and kept
+in `settings` beside the savegames.
+
 ## On a Linux desktop, without Docker
 
 Each [release](https://github.com/Krippler/wolf3d/releases) carries
-`wolf3d-linux-x86_64-VERSION.tar.gz`: both engines, the shareware episode
+`wolf3d-linux-x86_64-VERSION.tar.gz`: the engines, the shareware episode
 and a launcher.
 
 ```
@@ -73,9 +99,10 @@ finds a Steam or GOG copy by itself where it can; otherwise
 
 To build it yourself: `make -C WOLFSRC`, with gcc and the X11, Xext and
 PulseAudio development packages. `WOLFSRC/linux/wolf3d-wl1` plays the
-shareware and `WOLFSRC/linux/wolf3d` the registered game; run either from
-the directory you want savegames in, with `WOLF_DATA` naming the one with
-the game's files.
+shareware, `wolf3d` the registered game, `wolf3d-sod` Spear of Destiny (and
+with `WOLF_MISSION=2` or `3` its mission packs) and `wolf3d-sdm` its demo;
+run one from the directory you want savegames in, with `WOLF_DATA` naming
+the one with the game's files.
 
 ## Images
 

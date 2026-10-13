@@ -136,8 +136,12 @@ static	word			alFXReg;
 		word			far *sqHack,far *sqHackPtr,sqHackLen,sqHackSeqLen;
 		longword		sqHackTime;
 
-//	The machine
-static	opl3_chip		opl;
+//	The machine. There were one OPL2 chip and the effects on its channel 0,
+//	the music on the rest; here there are two, so the Settings pages can set
+//	the music and the effects at different levels. alOut, for the set-up and
+//	shut-down the game does through it, writes to both.
+static	opl3_chip		opl;			// the effects
+static	opl3_chip		oplmusic;		// the music
 static	int				mixrate;
 static	longword		tickphase;		// toward the next 700 Hz tick
 static	int				count_fx;		// ticks toward the next effects step
@@ -180,6 +184,16 @@ static	pthread_mutex_t	sdlock;
 ///////////////////////////////////////////////////////////////////////////
 void
 alOut(byte n,byte b)
+{
+	SD_Lock();
+	OPL3_WriteReg(&opl,n,b);
+	OPL3_WriteReg(&oplmusic,n,b);
+	SD_Unlock();
+}
+
+//	A register of the effects' chip alone
+static void
+fxOut(byte n,byte b)
 {
 	SD_Lock();
 	OPL3_WriteReg(&opl,n,b);
@@ -567,7 +581,7 @@ SDL_ALStopSound(void)
 	SD_Lock();
 
 	alSound = 0;
-	alOut(alFreqH + 0,0);
+	fxOut(alFreqH + 0,0);
 
 	SD_Unlock();
 }
@@ -579,20 +593,20 @@ SDL_AlSetFXInst(Instrument far *inst)
 
 	m = modifiers[0];
 	c = carriers[0];
-	alOut(m + alChar,inst->mChar);
-	alOut(m + alScale,inst->mScale);
-	alOut(m + alAttack,inst->mAttack);
-	alOut(m + alSus,inst->mSus);
-	alOut(m + alWave,inst->mWave);
-	alOut(c + alChar,inst->cChar);
-	alOut(c + alScale,inst->cScale);
-	alOut(c + alAttack,inst->cAttack);
-	alOut(c + alSus,inst->cSus);
-	alOut(c + alWave,inst->cWave);
+	fxOut(m + alChar,inst->mChar);
+	fxOut(m + alScale,inst->mScale);
+	fxOut(m + alAttack,inst->mAttack);
+	fxOut(m + alSus,inst->mSus);
+	fxOut(m + alWave,inst->mWave);
+	fxOut(c + alChar,inst->cChar);
+	fxOut(c + alScale,inst->cScale);
+	fxOut(c + alAttack,inst->cAttack);
+	fxOut(c + alSus,inst->cSus);
+	fxOut(c + alWave,inst->cWave);
 
 	// Note: Switch commenting on these lines for old MUSE compatibility
 //	alOut(alFeedCon,inst->nConn);
-	alOut(alFeedCon,0);
+	fxOut(alFeedCon,0);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -772,7 +786,7 @@ SDL_DoMusic(void)
 		while (sqHackTime <= alTimeCount)
 		{
 			sqHackTime = alTimeCount + sqHackPtr[1];	// time to next event
-			OPL3_WriteReg(&opl,sqHackPtr[0] & 0xff,sqHackPtr[0] >> 8);
+			OPL3_WriteReg(&oplmusic,sqHackPtr[0] & 0xff,sqHackPtr[0] >> 8);
 			sqHackPtr += 2;
 			sqHackLen -= 4;
 			if (!sqHackLen)
@@ -812,11 +826,16 @@ SDL_Tick(void)
 void
 SD_Mix(int16_t *out,int frames)
 {
-	int16_t		fm[4];
+	int16_t		fm[4],mus[4];
 	int32_t		l,r,v;
+	int32_t		musicgain,fxgain;
 	longword	sbstep;
 
 	sbstep = (longword)(((uint64_t)SB_RATE << 16) / mixrate);
+
+	//	The Settings pages' levels, 0-10, as gains in 256ths
+	musicgain = sys_setting[set_music] * 256 / 10;
+	fxgain = sys_setting[set_effects] * 256 / 10;
 
 	SD_Lock();
 
@@ -830,23 +849,26 @@ SD_Mix(int16_t *out,int frames)
 		}
 
 		OPL3_GenerateResampled(&opl,fm);
-		l = fm[0] * FM_GAIN;
-		r = fm[1] * FM_GAIN;
+		OPL3_GenerateResampled(&oplmusic,mus);
+		l = fm[0] * FM_GAIN * fxgain;
+		r = fm[1] * FM_GAIN * fxgain;
+		l += mus[0] * FM_GAIN * musicgain;
+		r += mus[1] * FM_GAIN * musicgain;
 
 		if (pcDivisor)
 		{
 			// A square wave at the timer's rate over twice the count
 			pcPhase += (uint64_t)PIT_RATE * 2;
 			v = ((pcPhase / ((uint64_t)pcDivisor * mixrate)) & 1) ? PC_AMPLITUDE : -PC_AMPLITUDE;
-			l += v;
-			r += v;
+			l += v * fxgain;
+			r += v * fxgain;
 		}
 
 		if (sbSample)
 		{
 			v = ((int32_t)sbSample[sbPosition >> 16] - 128) * DIGI_GAIN;
-			l += v * sbLeftVol / 15;
-			r += v * sbRightVol / 15;
+			l += v * sbLeftVol / 15 * fxgain;
+			r += v * sbRightVol / 15 * fxgain;
 
 			sbPosition += sbstep;
 			if ((sbPosition >> 16) >= sbLength)
@@ -856,6 +878,8 @@ SD_Mix(int16_t *out,int frames)
 			}
 		}
 
+		l >>= 8;
+		r >>= 8;
 		out[0] = l > 32767 ? 32767 : l < -32768 ? -32768 : l;
 		out[1] = r > 32767 ? 32767 : r < -32768 ? -32768 : r;
 		out += 2;
@@ -1023,6 +1047,7 @@ SD_Startup(void)
 
 	mixrate = SYS_AudioRate();
 	OPL3_Reset(&opl,mixrate);
+	OPL3_Reset(&oplmusic,mixrate);
 	tickphase = 0;
 	count_fx = 0;
 

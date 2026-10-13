@@ -53,7 +53,7 @@ CP_iteminfo
 	MainItems={MENU_X,MENU_Y,10,STARTITEM,24},
 	SndItems={SM_X,SM_Y1,12,0,52},
 	LSItems={LSM_X,LSM_Y,10,0,24},
-	CtlItems={CTL_X,CTL_Y,6,-1,56},
+	CtlItems={CTL_X,CTL_Y,7,-1,56},
 	CusItems={8,CST_Y+13*2,9,-1,0},
 	NewEitems={NE_X,NE_Y,11,0,88},
 	NewItems={NM_X,NM_Y,4,2,24};
@@ -139,14 +139,16 @@ far CtlMenu[]=
 	{0,"",0},
 	{0,"",0},
 	{0,"",MouseSensitivity},
-	{1,"",CustomControls}
+	{1,"",CustomControls},
+	{1,"",CP_Settings}
 #else
 	{0,STR_MOUSEEN,0},
 	{0,STR_JOYEN,0},
 	{0,STR_PORT2,0},
 	{0,STR_GAMEPAD,0},
 	{0,STR_SENS,MouseSensitivity},
-	{1,STR_CUSTOM,CustomControls}
+	{1,STR_CUSTOM,CustomControls},
+	{1,"Settings",CP_Settings}
 #endif
 },
 
@@ -378,6 +380,10 @@ void US_ControlPanel(byte scancode)
 
 		case sc_F6:
 			CP_Control();
+			goto finishup;
+
+		case sc_F12:
+			CP_Settings(0);
 			goto finishup;
 
 		finishup:
@@ -1766,7 +1772,7 @@ int CalibrateJoystick(void)
 void CP_Control(void)
 {
 	#define CTL_SPC	70
-	enum {MOUSEENABLE,JOYENABLE,USEPORT2,PADENABLE,MOUSESENS,CUSTOMIZE};
+	enum {MOUSEENABLE,JOYENABLE,USEPORT2,PADENABLE,MOUSESENS,CUSTOMIZE,SETTINGS};
 	int i,which;
 
 
@@ -1816,6 +1822,7 @@ void CP_Control(void)
 
 			case MOUSESENS:
 			case CUSTOMIZE:
+			case SETTINGS:
 				DrawCtlScreen();
 				MenuFadeIn();
 				WaitKeyUp();
@@ -2031,7 +2038,7 @@ void DrawCtlScreen(void)
  // PICK FIRST AVAILABLE SPOT
  //
  if (CtlItems.curpos<0 || !CtlMenu[CtlItems.curpos].active)
-   for (i=0;i<6;i++)
+   for (i=0;i<7;i++)
 	 if (CtlMenu[i].active)
 	 {
 	  CtlItems.curpos=i;
@@ -2040,6 +2047,351 @@ void DrawCtlScreen(void)
 
  DrawMenuGun(&CtlItems);
  VW_UpdateScreen();
+}
+
+
+////////////////////////////////////////////////////////////////////
+//
+// SETTINGS
+//
+// The port's own (sys_settings.c): which game, the shape and size of the
+// picture, the music and effects levels, and how the mouse and controller
+// behave. A menu of pages, from the Control menu or F12. On a page, up and
+// down choose, left and right (or Enter) change, and a change is made at
+// once and kept when the page is left.
+//
+////////////////////////////////////////////////////////////////////
+
+#define SET_X		32
+#define SET_Y		56
+#define SET_W		272
+#define SET_VAL		200		// where a setting's value is drawn
+#define SET_MAX		16
+
+enum {SK_ONOFF,SK_LEVEL,SK_CHOICE,SK_GAME};
+
+typedef struct
+{
+	char	*name;
+	int		kind;
+	int		which;			// a sys_setting, or for SK_GAME the game's index
+	char	**choices;		// SK_CHOICE: what min..max are called
+	int		first;			// SK_CHOICE: the setting's min
+} setitem_t;
+
+static	char		*shapenames[] = {"Square","4:3"};
+static	char		*scalenames[] = {"1x","2x","3x","4x","5x","6x"};
+
+void	SettingsGame(int);
+void	WriteConfig(void);
+void	SettingsPicture(int);
+void	SettingsSound(int);
+void	SettingsControls(int);
+
+CP_iteminfo	SetItems={SET_X+16,SET_Y,4,0,24};
+CP_itemtype far SetMenu[]=
+{
+	{1,"Game",SettingsGame},
+	{1,"Picture",SettingsPicture},
+	{1,"Sound levels",SettingsSound},
+	{1,"Mouse and controller",SettingsControls}
+};
+
+
+static void DrawSettingsTitle(char *title)
+{
+	ClearMScreen();
+	DrawStripes(10);
+	VWB_DrawPic(112,184,C_MOUSELBACKPIC);
+
+	WindowX=0;
+	WindowW=320;
+	PrintY=15;
+	fontnumber=1;
+	SETFONTCOLOR(READHCOLOR,0);
+	US_CPrint(title);
+}
+
+static void DrawSettingsMenu(void)
+{
+	DrawSettingsTitle("Settings");
+	DrawWindow(SET_X+8,SET_Y-5,SET_W-32,4*13+6,BKGDCOLOR);
+
+	SetMenu[0].active=SYS_NumGames()>1;
+	if (!SetMenu[SetItems.curpos].active)
+		SetItems.curpos=1;
+
+	DrawMenu(&SetItems,&SetMenu[0]);
+	DrawMenuGun(&SetItems);
+	VW_UpdateScreen();
+}
+
+void CP_Settings(int unused)
+{
+	int which;
+
+	DrawSettingsMenu();
+	MenuFadeIn();
+	WaitKeyUp();
+
+	do
+	{
+		which=HandleMenu(&SetItems,&SetMenu[0],NULL);
+		if (which>=0)
+		{
+			DrawSettingsMenu();
+			MenuFadeIn();
+			WaitKeyUp();
+		}
+	} while(which>=0);
+
+	MenuFadeOut();
+}
+
+
+static void DrawSettingsItem(setitem_t *item,int y,int lit)
+{
+	int x=SET_X+24,v,i;
+
+	VWB_Bar(x,y,SET_W-40,13,BKGDCOLOR);
+
+	SETFONTCOLOR(lit?HIGHLIGHT:TEXTCOLOR,BKGDCOLOR);
+	PrintX=x;
+	PrintY=y;
+	US_Print(item->name);
+
+	switch(item->kind)
+	{
+		case SK_ONOFF:
+			VWB_DrawPic(SET_VAL+40,y+1,sys_setting[item->which]?C_SELECTEDPIC:C_NOTSELECTEDPIC);
+			break;
+
+		case SK_LEVEL:
+			v=sys_setting[item->which];
+			VWB_Bar(SET_VAL,y+2,82,9,TEXTCOLOR);
+			DrawOutline(SET_VAL,y+2,82,9,0,HIGHLIGHT);
+			for (i=0;i<v;i++)
+				VWB_Bar(SET_VAL+2+i*8,y+4,7,6,lit?READHCOLOR:READCOLOR);
+			break;
+
+		case SK_CHOICE:
+			PrintX=SET_VAL;
+			US_Print(item->choices[sys_setting[item->which]-item->first]);
+			break;
+
+		case SK_GAME:
+			VWB_DrawPic(SET_VAL+40,y+1,
+				SYS_IsGameNow(SYS_GameKind(item->which))?C_SELECTEDPIC:C_NOTSELECTEDPIC);
+			break;
+	}
+	SETFONTCOLOR(TEXTCOLOR,BKGDCOLOR);
+}
+
+static void DrawSettingsPage(char *title,setitem_t *items,int n,int cur)
+{
+	int i;
+
+	DrawSettingsTitle(title);
+	DrawWindow(SET_X-8,SET_Y-5,SET_W,n*13+6,BKGDCOLOR);
+	for (i=0;i<n;i++)
+		DrawSettingsItem(&items[i],SET_Y+i*13,i==cur);
+	VWB_DrawPic(SET_X,SET_Y+cur*13-2,C_CURSOR1PIC);
+	VW_UpdateScreen();
+}
+
+//
+// Switch to another game: the launcher starts its engine when this one ends
+// with status 3. Returns only if it was not to be.
+//
+static void ChooseGame(setitem_t *item)
+{
+	static char	msg[96];
+	const char	*kind=SYS_GameKind(item->which);
+
+	if (SYS_IsGameNow(kind))
+	{
+		SD_PlaySound(NOWAYSND);
+		return;
+	}
+
+	sprintf(msg,"Play %s?\n%s",SYS_GameTitle(kind),
+		ingame?"The game in progress\nis lost unless saved.":"");
+	if (!Confirm(msg))
+		return;
+
+	if (!SYS_ChooseGame(kind))
+	{
+		Message("The choice cannot be\nwritten down here.");
+		IN_ClearKeysDown();
+		IN_Ack();
+		return;
+	}
+
+	MenuFadeOut();
+	WriteConfig();
+	ShutdownId();
+	exit(3);
+}
+
+static void SettingsPage(char *title,setitem_t *items,int n)
+{
+	ControlInfo ci;
+	setitem_t *item;
+	int cur=0,exit=0,step,changed=0,s;
+
+	DrawSettingsPage(title,items,n,cur);
+	MenuFadeIn();
+	WaitKeyUp();
+
+	do
+	{
+		ReadAnyControl(&ci);
+		item=&items[cur];
+		step=0;
+
+		switch(ci.dir)
+		{
+			case dir_North:
+			case dir_South:
+				DrawSettingsItem(item,SET_Y+cur*13,0);
+				VWB_Bar(SET_X-1,SET_Y+cur*13-2,24,16,BKGDCOLOR);
+				cur=(cur+(ci.dir==dir_North?n-1:1))%n;
+				DrawSettingsItem(&items[cur],SET_Y+cur*13,1);
+				VWB_DrawPic(SET_X,SET_Y+cur*13-2,C_CURSOR1PIC);
+				VW_UpdateScreen();
+				SD_PlaySound(MOVEGUN1SND);
+				TicDelay(20);
+				break;
+
+			case dir_West:
+				step=-1;
+				break;
+
+			case dir_East:
+				step=1;
+				break;
+		}
+
+		if (ci.button0 || Keyboard[sc_Space] || Keyboard[sc_Enter])
+			step=2;
+
+		if (step && item->kind==SK_GAME)
+		{
+			if (step==2)
+			{
+				WaitKeyUp();
+				ChooseGame(item);
+				DrawSettingsPage(title,items,n,cur);
+				WaitKeyUp();
+			}
+		}
+		else if (step)
+		{
+			s=item->which;
+			if (step!=2)
+				changed|=SYS_StepSetting(s,step);
+			else if (item->kind!=SK_LEVEL)
+			{
+				// Enter goes round: on to the next, or back to the first
+				if (!SYS_StepSetting(s,1))
+					SYS_StepSetting(s,-100);
+				changed=1;
+			}
+			DrawSettingsItem(item,SET_Y+cur*13,1);
+			VW_UpdateScreen();
+			SD_PlaySound(MOVEGUN1SND);		// at the new effects level
+			if (step==2)
+				WaitKeyUp();
+			else
+				TicDelay(item->kind==SK_LEVEL?8:20);
+		}
+
+		if (ci.button1 || Keyboard[sc_Escape])
+			exit=1;
+
+	} while(!exit);
+
+	if (changed)
+		SYS_SaveSettings();
+
+	SD_PlaySound(ESCPRESSEDSND);
+	WaitKeyUp();
+	MenuFadeOut();
+}
+
+void SettingsGame(int unused)
+{
+	setitem_t	items[SET_MAX];
+	int			i,n=SYS_NumGames();
+
+	if (n>SET_MAX)
+		n=SET_MAX;
+	for (i=0;i<n;i++)
+	{
+		items[i].name=(char *)SYS_GameTitle(SYS_GameKind(i));
+		items[i].kind=SK_GAME;
+		items[i].which=i;
+	}
+	SettingsPage("Game",items,n);
+}
+
+void SettingsPicture(int unused)
+{
+	setitem_t	items[2];
+	int			n=0;
+
+	items[n].name="Shape";
+	items[n].kind=SK_CHOICE;
+	items[n].which=set_shape;
+	items[n].choices=shapenames;
+	items[n++].first=0;
+
+	// The browser's page is as big as its window; a desktop's is chosen
+	if (!SYS_InBrowser())
+	{
+		items[n].name="Window size";
+		items[n].kind=SK_CHOICE;
+		items[n].which=set_scale;
+		items[n].choices=scalenames;
+		items[n++].first=1;
+	}
+	SettingsPage("Picture",items,n);
+}
+
+void SettingsSound(int unused)
+{
+	setitem_t	items[2];
+
+	items[0].name="Music";
+	items[0].kind=SK_LEVEL;
+	items[0].which=set_music;
+	items[1].name="Effects";
+	items[1].kind=SK_LEVEL;
+	items[1].which=set_effects;
+	SettingsPage("Sound levels",items,2);
+}
+
+void SettingsControls(int unused)
+{
+	setitem_t	items[4];
+	int			n=0;
+
+	items[n].name="Mouse walks";
+	items[n].kind=SK_ONOFF;
+	items[n++].which=set_mousewalks;
+	items[n].name="Always run";
+	items[n].kind=SK_ONOFF;
+	items[n++].which=set_alwaysrun;
+	items[n].name="Vibration";
+	items[n].kind=SK_ONOFF;
+	items[n++].which=set_vibration;
+	if (!SYS_InBrowser())
+	{
+		items[n].name="Hold the pointer";
+		items[n].kind=SK_ONOFF;
+		items[n++].which=set_capture;
+	}
+	SettingsPage("Mouse and controller",items,n);
 }
 
 

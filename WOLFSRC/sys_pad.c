@@ -94,12 +94,17 @@ static void Send (const byte *m, int len)
 
 static void SayAspect (void)
 {
-	const char	*a = getenv ("WOLF_ASPECT");
 	byte		m[2];
 
 	m[0] = 'A';
-	m[1] = !(a && !strcmp (a,"square"));
+	m[1] = sys_setting[set_shape];
 	Send (m,2);
+}
+
+// The shape was changed on the Settings pages
+void SYS_PadSayAspect (void)
+{
+	SayAspect ();
 }
 
 //
@@ -110,7 +115,7 @@ void SYS_PadRumble (float strength, int ms)
 	byte	m[7];
 	int		lo,hi;
 
-	if (conn < 0 || strength <= 0)
+	if (conn < 0 || strength <= 0 || !sys_setting[set_vibration])
 		return;
 	if (strength > 1)
 		strength = 1;

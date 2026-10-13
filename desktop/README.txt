@@ -22,9 +22,10 @@ anywhere else, tell it once:
 
     wolf3d --data /path/to/the/directory/with/VSWAP.WL6
 
-and it remembers. The registered game (*.WL6, or *.WL3 for three episodes)
-and the shareware (*.WL1, version 1.4) are both played. Spear of Destiny is
-not, yet.
+and it remembers. The registered game (*.WL6, or *.WL3 for three episodes),
+the shareware (*.WL1, version 1.4), Spear of Destiny (*.SOD), its mission
+packs (*.SD2, *.SD3) and its demo (*.SDM) are all played; with several in
+the one directory, Settings -> Game in the game chooses between them.
 
 Savegames, settings and high scores are in ~/.local/share/wolf3d.
 
@@ -34,11 +35,14 @@ Playing
 Arrow keys move, Ctrl fires, Space opens doors, Alt strafes, Shift runs,
 1-4 change weapon, Esc is the menu. The mouse turns and fires once it is
 enabled in the menu's Control screen (it is by default); it is captured
-while you play and let go in the menus. WOLF_NOGRAB=1 leaves it alone.
+while you play and let go in the menus.
 
-WOLF_SCALE=3 makes the window three times the original size rather than
-two; WOLF_ASPECT=square shows square pixels rather than the 4:3 picture
-DOS drew.
+F12, or Settings at the bottom of the Control menu, has the rest: which
+game, the window's size and shape (4:3 as DOS showed it, or square pixels),
+the music and effects levels, whether the mouse walks as well as turns,
+always running, and holding on to the pointer. They take effect at once.
+WOLF_SCALE, WOLF_ASPECT=square and WOLF_NOGRAB=1 set the same things from
+outside until they are changed there.
 
 What it needs
 -------------

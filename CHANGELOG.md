@@ -14,6 +14,15 @@ packaged to play in a browser.
 
 - Both engines build with gcc on 64-bit Linux and run on an X server:
   `wolf3d` for the registered game, `wolf3d-wl1` for the shareware episode.
+- Spear of Destiny: `wolf3d-sod` plays the full game and, with
+  `WOLF_MISSION`, its mission packs (*Return to Danger*, *Ultimate
+  Challenge*); `wolf3d-sdm` plays its demo. The copy protection quiz is off.
+  The container and the launcher find every game in the data directory.
+- Settings, at the foot of the Control menu or on F12: which game, the
+  picture's shape and the window's size (changed at once), the music and
+  effects levels separately (the two now have an OPL chip each), whether
+  the mouse walks, always run, controller vibration and pointer capture.
+  Kept in `settings` beside the savegames.
 - The assembly is C: the raycaster, the scalers, the decompressors, the
   timer and sound interrupt handlers.
 - The VGA card, the AdLib (Nuked OPL3), the Sound Blaster and the PC

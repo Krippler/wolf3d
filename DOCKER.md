@@ -26,8 +26,8 @@ always reconnect; the display and the proxy stay up.
 
 | Path | |
 |---|---|
-| `/data` | Optional, read-only. Your own copy of the game's files: `VSWAP.WL6` and the rest for six episodes, `.WL3` for three. With nothing here, the shareware episode built into the image plays. |
-| `/wolf/state` | Savegames (`SAVEGAM?.WL6`), settings and high scores (`CONFIG.WL6`), and the logs of everything above. Keep it. |
+| `/data` | Optional, read-only. Your own copy of the game's files: `VSWAP.WL6` and the rest for six episodes, `.WL3` for three, `.SOD` for Spear of Destiny, `.SD2` and `.SD3` for its mission packs, `.SDM` for its demo. Several can share it. With nothing here, the shareware episode built into the image plays. |
+| `/wolf/state` | Savegames (`SAVEGAM?.WL6`), the game's options and high scores (`CONFIG.WL6`), the Settings pages' `settings`, the game last chosen (`game`), and the logs of everything above. Keep it. |
 
 A configuration file or savegame from the DOS game is not read: the
 engine's are a different shape, and it says so rather than loading nonsense.
@@ -37,8 +37,9 @@ engine's are a different shape, and it says so rather than loading nonsense.
 | Variable | Default | |
 |---|---|---|
 | `PUID`, `PGID` | `1001` | Who the game runs as. The state directory is made theirs. 99 and 100 on Unraid. |
+| `WOLF_GAME` | | Which game to play when `/data` holds several: `wl6`, `sod`, `sd2`, `sd3`, `sdm` or `wl1`. Without it, the one last chosen under Settings → Game, or the first. |
 | `WOLF_SCALE` | `2` | The picture is 320x200 times this. The page scales it to the window either way; larger costs bandwidth. |
-| `WOLF_ASPECT` | `4:3` | `square` draws square pixels rather than the 4:3 picture DOS showed. |
+| `WOLF_ASPECT` | `4:3` | `square` draws square pixels rather than the 4:3 picture DOS showed. Settings → Picture changes it in the game, and from then on what was chosen there wins. |
 | `WOLF_SOUND` | `1` | `0` for no sound at all, saving the stream's bandwidth. |
 | `WOLF_AUDIO_RATE` | `22050` | The sound's rate, in Hz. About 700 kbit/s at the default; 11025 halves it, 44100 doubles it. |
 | `PULSE_SERVER` | | A PulseAudio server to play the sound on instead of the browser. |
@@ -59,7 +60,9 @@ The page captures the mouse, so the browser keeps <kbd>Esc</kbd>: it gives
 the mouse back and brings up the start screen. The game's menu, which is on
 Esc on DOS, is on <kbd>`</kbd> beside it. The rest are the game's own: arrow
 keys move, Ctrl fires, Space opens, Alt strafes, Shift runs, 1 to 4 change
-weapon, F1 to F10 are what the help screen says.
+weapon, F1 to F10 are what the help screen says, and F12 opens the port's
+Settings (also at the bottom of the Control menu, for a browser that keeps
+F12 for itself).
 
 A game controller is read by the browser and passed to the engine, which
 plays it as the keyboard, so the menus work with it too:

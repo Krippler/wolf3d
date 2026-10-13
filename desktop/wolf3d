@@ -56,8 +56,8 @@ kinds() {
     [ -d "$1" ] || return 1
     found=""
     for ext in wl6 sod sd2 sd3 wl1 sdm; do
-        if find "$1" -maxdepth 1 -type f -iname "vswap.$ext" 2>/dev/null | grep -q . \
-           || { [ "$ext" = wl6 ] && find "$1" -maxdepth 1 -type f -iname "vswap.wl3" 2>/dev/null | grep -q .; }; then
+        if find -L "$1" -maxdepth 1 -type f -iname "vswap.$ext" 2>/dev/null | grep -q . \
+           || { [ "$ext" = wl6 ] && find -L "$1" -maxdepth 1 -type f -iname "vswap.wl3" 2>/dev/null | grep -q .; }; then
             found="$found $ext"
         fi
     done

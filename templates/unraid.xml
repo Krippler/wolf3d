@@ -19,7 +19,7 @@
     &#13;
     Sound comes out of the browser, with nothing to set up: the AdLib music and effects, emulated, and the Sound Blaster's digitized voices are mixed inside the container and sent to the same page as the picture, over the WebUI port. Click to start playing and the sound starts with it, because browsers will not play audio without a click.&#13;
     &#13;
-    The shareware episode is included, so this plays as soon as it starts - episode 1, ten levels. To play all six episodes, put the files from your own copy of the game (VSWAP.WL6 and the rest) into the Game data folder below and they will be used instead. Names are matched without regard to case. The registered game is not included and must come from your own copy.&#13;
+    The shareware episode is included, so this plays as soon as it starts - episode 1, ten levels. To play all six episodes, put the files from your own copy of the game (VSWAP.WL6 and the rest) into the Game data folder below and they will be used instead. Spear of Destiny (*.SOD), its mission packs (*.SD2, *.SD3) and its demo (*.SDM) work too; with several there, Settings - Game in the game switches between them. Names are matched without regard to case. The registered game is not included and must come from your own copy.&#13;
     &#13;
     The WebUI opens a client that captures the mouse. Escape hands the cursor back, and the ` key opens the game menu. A game controller works too, on a phone as well as a desktop, and vibrates when you are hit.
   </Overview>
@@ -66,6 +66,10 @@
   <Config Name="Scale" Target="WOLF_SCALE" Default="2"
           Description="Pixel scale, 1 to 4. The picture is 320x200 multiplied by this, so 2 gives 640x400. Larger values cost more bandwidth to the browser."
           Type="Variable" Display="always" Required="false" Mask="false">2</Config>
+
+  <Config Name="Game" Target="WOLF_GAME" Default=""
+          Description="Which game to play when the Game data folder holds several: wl6, sod, sd2, sd3, sdm or wl1. Empty: the one last chosen in the game's Settings, or the first found."
+          Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
 
   <Config Name="Sound" Target="WOLF_SOUND" Default="1"
           Description="Set to 0 for no sound at all, which saves the bandwidth the audio stream uses."

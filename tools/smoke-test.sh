@@ -11,6 +11,7 @@
 #   - there is sound, music and effects both, in the stream a browser gets
 #   - a game saved is a game that loads
 #   - F10, Y quits cleanly with the order screen
+#   - the Settings pages change the picture's shape, and it is remembered
 #   - the registered-game engine turns the shareware away and says why
 #
 # Needs the engines built (make -C WOLFSRC), and Xvfb, xdotool, ImageMagick's
@@ -153,6 +154,46 @@ loud = sum(1 for i in range(0, n, 441 * 2) if abs(s[i]) > 300)
 print('      %.1f s of sound, %d of %d hundredths above the noise' % (n / 2 / 44100, loud, n // 882))
 sys.exit(0 if loud > n // 882 // 4 else 1)
 EOF
+
+#
+# The Settings pages: F12, Picture, the shape made square. The window is
+# remade 640x400, the choice is written down, and the next run starts so.
+#
+geometry() { xdotool search --name "Wolfenstein" getwindowgeometry 2>/dev/null | sed -n 's/.*Geometry: //p' | head -1; }
+WOLF_DATA="$data" WOLF_AUDIO=none "$wl1" -nowait -tedlevel 0 >"$work/settings.log" 2>&1 &
+engine=$!
+sleep 4
+before=$(geometry)
+press F12
+sleep 1.5
+press Return		# Picture: Game is not offered without a launcher
+sleep 1.5
+press Left
+sleep 0.5
+shot 7-settings
+after=$(geometry)
+press Escape
+sleep 1
+press Escape
+sleep 1.5
+press F10
+sleep 1.5
+press y
+wait "$engine" || true
+engine=""
+if [ "$before" = "640x480" ] && [ "$after" = "640x400" ] && grep -q "^shape 0" settings 2>/dev/null; then
+    pass "the Settings pages make the picture square, and say so in settings"
+else
+    fail "the Settings pages: the window went from $before to $after; settings: $(cat settings 2>/dev/null | tr '\n' ' ')"
+fi
+WOLF_DATA="$data" WOLF_AUDIO=none "$wl1" -nowait -tedlevel 0 >>"$work/settings.log" 2>&1 &
+engine=$!
+sleep 3
+again=$(geometry)
+kill "$engine" 2>/dev/null; wait "$engine" 2>/dev/null || true
+engine=""
+[ "$again" = "640x400" ] && pass "the next run starts with the settings it was left with" \
+                         || fail "the next run's window is $again, not 640x400"
 
 #
 # The wrong engine for the data

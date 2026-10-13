@@ -93,7 +93,7 @@ cd "$STATE"
 #
 has() {     # has DIR EXTENSION: is there a VSWAP of that kind, in any case?
     [ -d "$1" ] || return 1
-    find "$1" -maxdepth 1 -type f -iname "vswap.$2" 2>/dev/null | grep -q .
+    find -L "$1" -maxdepth 1 -type f -iname "vswap.$2" 2>/dev/null | grep -q .
 }
 
 # The shareware is checked before it is offered, as the DOOM container checks
@@ -156,6 +156,11 @@ pick_game() {
     fi
 
     [ -x "$ENGINE" ] || die "no engine at $ENGINE"
+    unreadable=$(find -L "$DATA" -maxdepth 1 -type f ! -readable 2>/dev/null | head -3)
+    if [ -n "$unreadable" ]; then
+        die "cannot read the game data as $(id -u):$(id -g): $(echo $unreadable).
+Make the files readable (chmod a+r), or set PUID and PGID to their owner."
+    fi
     export WOLF_DATA="$DATA" WOLF_GAME_NOW="$GAME" WOLF_GAMES="$GAMES"
     log "playing $name from $DATA"
 }
@@ -305,12 +310,15 @@ while :; do
 
     [ -n "$why" ] || break
     [ "$SHUTTING_DOWN" = "0" ] || break
-    [ "$RESTART" = "1" ] || break
 
+    # The choice made in the game wins over WOLF_GAME from now on
     if [ "$why" = "switch" ]; then
+        WOLF_GAME=""
         pick_game
         continue
     fi
+
+    [ "$RESTART" = "1" ] || break
 
     now=$(date +%s)
     if [ "$((now - started))" -lt 10 ]; then

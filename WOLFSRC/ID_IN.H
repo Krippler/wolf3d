@@ -52,7 +52,7 @@ typedef	byte		ScanCode;
 #define	sc_F9			0x43
 #define	sc_F10			0x44
 #define	sc_F11			0x57
-#define	sc_F12			0x59
+#define	sc_F12			0x58
 
 #define	sc_1			0x02
 #define	sc_2			0x03

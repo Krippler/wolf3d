@@ -181,6 +181,8 @@ void SYS_PadKey (byte code, int extended, int down)
 
 void	SYS_PadStart (void);
 void	SYS_PadTick (void);
+static void Resize (void);
+static volatile int	resizewanted;
 
 static void KeyEvent (XKeyEvent *ev, int down)
 {
@@ -321,9 +323,7 @@ int SYS_MouseButtons (void)
 //
 void SYS_SetGrab (int wanted)
 {
-	if (getenv ("WOLF_NOGRAB"))
-		wanted = 0;
-	grabwanted = wanted;
+	grabwanted = wanted && sys_setting[set_capture];
 }
 
 
@@ -555,6 +555,8 @@ static void *Machine (void *unused)
 		Events ();
 		SYS_PadTick ();
 		UpdateGrab ();
+		if (resizewanted)
+			Resize ();
 		ScanOut ();
 
 		// Fell more than a few ticks behind -- the machine was suspended,
@@ -659,15 +661,9 @@ void SYS_Throttle (void)
 
 static void ParseSize (void)
 {
-	const char	*env;
-	int			scale = 2;
-	int			aspect = 1;
+	int			scale = sys_setting[set_scale];
+	int			aspect = sys_setting[set_shape];
 	int			i;
-
-	if ((env = getenv ("WOLF_SCALE")) && atoi (env) > 0)
-		scale = atoi (env);
-	if (scale > 6)
-		scale = 6;
 
 	// DOS showed 320x200 on a 4:3 monitor, so every pixel was a fifth
 	// taller than wide. Square pixels are there for anyone who wants them.
@@ -675,10 +671,17 @@ static void ParseSize (void)
 	// Behind the browser the page does the stretching (sys_pad.c tells it
 	// which shape), so the picture crossing the network is a sixth smaller
 	// and the engine draws square pixels: WOLF_PAGE_ASPECT says so.
-	if ((env = getenv ("WOLF_ASPECT")) && !strcmp (env,"square"))
+	// The container's screen is made WOLF_SCALE times 320x200 before the
+	// game starts, so there the size is that, whatever settings says.
+	if (SYS_InBrowser ())
+	{
+		const char	*env = getenv ("WOLF_SCALE");
+
 		aspect = 0;
-	if (getenv ("WOLF_PAGE_ASPECT"))
-		aspect = 0;
+		scale = env && atoi (env) > 0 ? atoi (env) : 2;
+	}
+	if (scale > 6)
+		scale = 6;
 
 	winwidth = 320*scale;
 	winheight = (aspect ? 240 : 200)*scale;
@@ -728,6 +731,7 @@ static void MakeImage (Visual *visual, int depth)
 			if (!ShmError)
 				return;
 
+			image->data = NULL;		// not XDestroyImage's to free
 			XDestroyImage (image);
 			shmdt (shminfo.shmaddr);
 		}
@@ -740,11 +744,67 @@ static void MakeImage (Visual *visual, int depth)
 	image->data = calloc (1,image->bytes_per_line * winheight);
 }
 
+static void SetSizeHints (void)
+{
+	XSizeHints	*hints;
+
+	// Fixed size: the picture is scaled to the window when it is made, and
+	// a window manager stretching it afterwards would only leave black bars.
+	hints = XAllocSizeHints ();
+	hints->flags = PMinSize | PMaxSize;
+	hints->min_width = hints->max_width = winwidth;
+	hints->min_height = hints->max_height = winheight;
+	XSetWMNormalHints (dpy,win,hints);
+	XFree (hints);
+}
+
+//
+// The shape or the size was changed on the Settings pages. The window and
+// the image are remade by the machine thread, which is the one drawing.
+//
+static Visual			*visual;
+static int				depth;
+
+void SYS_Resize (void)
+{
+	resizewanted = 1;
+}
+
+static void Resize (void)
+{
+	int	oldwidth = winwidth, oldheight = winheight;
+
+	resizewanted = 0;
+	ParseSize ();
+	if (winwidth == oldwidth && winheight == oldheight)
+		return;
+
+	if (useshm)
+	{
+		XShmDetach (dpy,&shminfo);
+		XSync (dpy,False);
+		image->data = NULL;
+		XDestroyImage (image);
+		shmdt (shminfo.shmaddr);
+	}
+	else
+		XDestroyImage (image);
+
+	SetSizeHints ();
+	XResizeWindow (dpy,win,winwidth,winheight);
+	MakeImage (visual,depth);
+	shownonce = 0;
+
+	if (grabbed)
+		XWarpPointer (dpy,None,win,0,0,0,0,winwidth/2,winheight/2);
+	lastmx = winwidth/2;
+	lastmy = winheight/2;
+}
+
 void SYS_Startup (void)
 {
 	XVisualInfo		vinfo;
 	XSetWindowAttributes	attr;
-	XSizeHints		*hints;
 	XClassHint		*classhint;
 	int				screen;
 	Pixmap			blank;
@@ -764,6 +824,7 @@ void SYS_Startup (void)
 	pthread_cond_init (&ticked,&cattr);
 	pthread_condattr_destroy (&cattr);
 
+	SYS_LoadSettings ();
 	ParseSize ();
 
 	dpy = XOpenDisplay (NULL);
@@ -812,14 +873,7 @@ void SYS_Startup (void)
 	XSetClassHint (dpy,win,classhint);
 	XFree (classhint);
 
-	// Fixed size: the picture is scaled to the window when it is made, and
-	// a window manager stretching it afterwards would only leave black bars.
-	hints = XAllocSizeHints ();
-	hints->flags = PMinSize | PMaxSize;
-	hints->min_width = hints->max_width = winwidth;
-	hints->min_height = hints->max_height = winheight;
-	XSetWMNormalHints (dpy,win,hints);
-	XFree (hints);
+	SetSizeHints ();
 
 	wm_delete = XInternAtom (dpy,"WM_DELETE_WINDOW",False);
 	XSetWMProtocols (dpy,win,&wm_delete,1);
@@ -833,7 +887,9 @@ void SYS_Startup (void)
 	XkbSetDetectableAutoRepeat (dpy,True,NULL);
 
 	gc = XCreateGC (dpy,win,0,NULL);
-	MakeImage (vinfo.visual,vinfo.depth);
+	visual = vinfo.visual;
+	depth = vinfo.depth;
+	MakeImage (visual,depth);
 
 	XMapRaised (dpy,win);
 	XSetInputFocus (dpy,win,RevertToParent,CurrentTime);

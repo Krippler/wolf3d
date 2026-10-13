@@ -47,7 +47,7 @@ O		= linux
 GAME	= WL_ACT1 WL_ACT2 WL_AGENT WL_DEBUG WL_DRAW WL_GAME WL_INTER \
 		  WL_MAIN WL_MENU WL_PLAY WL_SCALE WL_STATE \
 		  ID_CA ID_IN ID_MM ID_PM ID_SD ID_US_1 ID_US_A ID_VH ID_VL
-SYS		= sys_x11 sys_port sys_audio sys_pad
+SYS		= sys_x11 sys_port sys_audio sys_pad sys_settings
 
 # The help screens and the end text: Spear of Destiny had neither, and its
 # project left WL_TEXT.C out

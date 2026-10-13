@@ -243,7 +243,32 @@ int		SYS_MouseButtons (void);
 void	SYS_SetGrab (int wanted);
 void	SYS_PadRumble (float strength, int ms);	// sys_pad.c
 void	SYS_TextScreen (const byte *screen, int rows, const char *text, int col, int row);
-const char *SYS_StateDir (void);
+
+// sys_settings.c: the port's own settings, changed on the Settings pages
+enum
+{
+	set_shape,			// 1: stretched to 4:3 as on a monitor; 0: square pixels
+	set_scale,			// the window, in multiples of 320x200 (a desktop)
+	set_music,			// 0-10
+	set_effects,		// 0-10: the AdLib effects, the digitized sounds, the speaker
+	set_mousewalks,		// the mouse's forward and back moves the player
+	set_alwaysrun,		// run without holding the run button; holding it walks
+	set_vibration,		// the controller shakes when hit
+	set_capture,		// the pointer is held in the window while playing (a desktop)
+	SET_COUNT
+};
+extern	int		sys_setting[SET_COUNT];
+void	SYS_LoadSettings (void);
+void	SYS_SaveSettings (void);
+int		SYS_StepSetting (int which, int step);
+int		SYS_InBrowser (void);
+int		SYS_NumGames (void);
+const char *SYS_GameKind (int i);
+const char *SYS_GameTitle (const char *kind);
+int		SYS_IsGameNow (const char *kind);
+int		SYS_ChooseGame (const char *kind);
+void	SYS_Resize (void);				// sys_x11.c: the window, after shape or scale
+void	SYS_PadSayAspect (void);		// sys_pad.c: the page, after shape
 
 // sys_audio.c: where the sound goes, and the thread that asks ID_SD.C for it
 int		SYS_AudioRate (void);
