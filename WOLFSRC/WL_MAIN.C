@@ -1718,9 +1718,11 @@ void    DemoLoop (void)
 
 #endif
 
+	cp_startnewgame = SYS_TakeNewGame ();
+
 	while (1)
 	{
-		while (!NoWait)
+		while (!NoWait && !cp_startnewgame)
 		{
 //
 // title page

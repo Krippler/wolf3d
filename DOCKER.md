@@ -59,7 +59,8 @@ engine's are a different shape, and it says so rather than loading nonsense.
 The page captures the mouse, so the browser keeps <kbd>Esc</kbd>: it gives
 the mouse back and brings up the start screen. The game's menu, which is on
 Esc on DOS, is on <kbd>`</kbd> beside it. The rest are the game's own: arrow
-keys move, Ctrl fires, Space opens, Alt strafes, Shift runs, 1 to 4 change
+keys move, Ctrl fires, Space opens, Alt strafes (or <kbd>,</kbd> and
+<kbd>.</kbd> on their own, rebound under Settings → Keys), Shift runs, 1 to 4 change
 weapon, F1 to F10 are what the help screen says, and F12 opens the port's
 Settings (also at the bottom of the Control menu, for a browser that keeps
 F12 for itself).

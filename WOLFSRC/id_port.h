@@ -255,6 +255,8 @@ enum
 	set_alwaysrun,		// run without holding the run button; holding it walks
 	set_vibration,		// the controller shakes when hit
 	set_capture,		// the pointer is held in the window while playing (a desktop)
+	set_strafeleft,		// the scan codes of the keys that step sideways,
+	set_straferight,	// 0 for none
 	SET_COUNT
 };
 extern	int		sys_setting[SET_COUNT];
@@ -267,6 +269,8 @@ const char *SYS_GameKind (int i);
 const char *SYS_GameTitle (const char *kind);
 int		SYS_IsGameNow (const char *kind);
 int		SYS_ChooseGame (const char *kind);
+int		SYS_RequestNewGame (void);			// the next engine opens at New Game
+int		SYS_TakeNewGame (void);				// ...which it asks once
 void	SYS_Resize (void);				// sys_x11.c: the window, after shape or scale
 void	SYS_PadSayAspect (void);		// sys_pad.c: the page, after shape
 

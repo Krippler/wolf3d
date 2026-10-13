@@ -184,6 +184,7 @@ int  CP_CheckQuick(unsigned scancode);
 void CustomControls(void);
 void MouseSensitivity(void);
 void CP_Settings(int unused);
+extern boolean cp_startnewgame;
 
 void CheckForEpisodes(void);
 

@@ -5,12 +5,20 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
-## [Unreleased]
+## [1.1.0] — 2026-10-13
 
 ### Changed
 
 - The documentation describes 1.0.0 throughout: all four engines, Spear of
   Destiny, the Settings pages, and the published image tags.
+
+### Added
+
+- Keys to strafe left and right on their own, without holding Alt: `,` and
+  `.` to begin with, rebound under Settings → Keys.
+- New Game asks which game to play -- Wolfenstein 3-D or Spear of Destiny,
+  and the mission packs -- when more than one is there, then goes on to that
+  game's episodes or difficulty, restarting into its engine if need be.
 
 ## [1.0.0] — 2026-10-13
 
