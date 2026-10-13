@@ -377,9 +377,7 @@ void PollMouseMove (void)
 {
 	int	mousexmove,mouseymove;
 
-	Mouse(MDelta);
-	mousexmove = _CX;
-	mouseymove = _DX;
+	IN_MouseMickeys(&mousexmove,&mouseymove);
 
 	controlx += mousexmove*10/(13-mouseadjustment);
 	controly += mouseymove*20/(13-mouseadjustment);
@@ -760,7 +758,7 @@ void CheckKeys (void)
 		SD_MusicOn();
 		Paused = false;
 		if (MousePresent)
-			Mouse(MDelta);	// Clear accumulated mouse movement
+			IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 		return;
 	}
 
@@ -812,7 +810,7 @@ void CheckKeys (void)
 			playstate = ex_abort;
 		lasttimecount = TimeCount;
 		if (MousePresent)
-			Mouse(MDelta);	// Clear accumulated mouse movement
+			IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 		PM_CheckMainMem ();
 		return;
 	}
@@ -827,7 +825,7 @@ void CheckKeys (void)
 		SETFONTCOLOR(0,15);
 		DebugKeys();
 		if (MousePresent)
-			Mouse(MDelta);	// Clear accumulated mouse movement
+			IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 		lasttimecount = TimeCount;
 		return;
 	}
@@ -1004,8 +1002,8 @@ void StopMusic(void)
 	for (i = 0;i < LASTMUSIC;i++)
 		if (audiosegs[STARTMUSIC + i])
 		{
-			MM_SetPurge(&((memptr)audiosegs[STARTMUSIC + i]),3);
-			MM_SetLock(&((memptr)audiosegs[STARTMUSIC + i]),false);
+			MM_SetPurge((memptr *)&audiosegs[STARTMUSIC + i],3);
+			MM_SetLock((memptr *)&audiosegs[STARTMUSIC + i],false);
 		}
 }
 
@@ -1037,7 +1035,7 @@ void StartMusic(void)
 		mmerror = false;
 	else
 	{
-		MM_SetLock(&((memptr)audiosegs[STARTMUSIC + chunk]),true);
+		MM_SetLock((memptr *)&audiosegs[STARTMUSIC + chunk],true);
 		SD_StartMusic((MusicGroup far *)audiosegs[STARTMUSIC + chunk]);
 	}
 }
@@ -1065,7 +1063,7 @@ byte	far whiteshifts[NUMREDSHIFTS][768];
 int		damagecount,bonuscount;
 boolean	palshifted;
 
-extern 	byte	far	gamepal;
+extern 	byte	far	gamepal[];
 
 /*
 =====================
@@ -1087,7 +1085,7 @@ void InitRedShifts (void)
 	for (i=1;i<=NUMREDSHIFTS;i++)
 	{
 		workptr = (byte far *)&redshifts[i-1][0];
-		baseptr = &gamepal;
+		baseptr = gamepal;
 
 		for (j=0;j<=255;j++)
 		{
@@ -1103,7 +1101,7 @@ void InitRedShifts (void)
 	for (i=1;i<=NUMWHITESHIFTS;i++)
 	{
 		workptr = (byte far *)&whiteshifts[i-1][0];
-		baseptr = &gamepal;
+		baseptr = gamepal;
 
 		for (j=0;j<=255;j++)
 		{
@@ -1213,7 +1211,7 @@ void UpdatePaletteShifts (void)
 	else if (palshifted)
 	{
 		VW_WaitVBL(1);
-		VL_SetPalette (&gamepal);		// back to normal
+		VL_SetPalette (gamepal);		// back to normal
 		palshifted = false;
 	}
 }
@@ -1235,7 +1233,7 @@ void FinishPaletteShifts (void)
 	{
 		palshifted = 0;
 		VW_WaitVBL(1);
-		VL_SetPalette (&gamepal);
+		VL_SetPalette (gamepal);
 	}
 }
 
@@ -1362,7 +1360,7 @@ think:
 =
 ===================
 */
-long funnyticount;
+int32_t funnyticount;
 
 
 void PlayLoop (void)
@@ -1380,7 +1378,7 @@ void PlayLoop (void)
 	ClearPaletteShifts ();
 
 	if (MousePresent)
-		Mouse(MDelta);	// Clear accumulated mouse movement
+		IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 
 	if (demoplayback)
 		IN_StartAck ();
@@ -1389,7 +1387,7 @@ void PlayLoop (void)
 	{
 		if (virtualreality)
 		{
-			helmetangle = peek (0x40,0xf0);
+			helmetangle = 0;		// the head tracker left it at 0040:00F0
 			player->angle += helmetangle;
 			if (player->angle >= ANGLES)
 				player->angle -= ANGLES;

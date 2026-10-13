@@ -29,8 +29,6 @@
 #define	MButtons	3
 #define	MDelta		11
 
-#define	MouseInt	0x33
-#define	Mouse(x)	_AX = x,geninterrupt(MouseInt)
 
 //
 // joystick constants
@@ -56,10 +54,10 @@ boolean			JoyPadPresent;
 
 
 // 	Global variables
-		boolean		Keyboard[NumCodes];
-		boolean		Paused;
-		char		LastASCII;
-		ScanCode	LastScan;
+volatile	boolean		Keyboard[NumCodes];
+volatile	boolean		Paused;
+volatile	char		LastASCII;
+volatile	ScanCode	LastScan;
 
 		KeyboardDef	KbdDefs = {0x1d,0x38,0x47,0x48,0x49,0x4b,0x4d,0x4f,0x50,0x51};
 		JoystickDef	JoyDefs[MaxJoys];
@@ -128,7 +126,6 @@ static	Direction	DirTable[] =		// Quick lookup for total direction
 					};
 
 static	void			(*INL_KeyHook)(void);
-static	void interrupt	(*OldKeyVect)(void);
 
 static	char			*ParmStrings[] = {"nojoys","nomouse",nil};
 
@@ -138,20 +135,19 @@ static	char			*ParmStrings[] = {"nojoys","nomouse",nil};
 //
 //	INL_KeyService() - Handles a keyboard interrupt (key up/down)
 //
+//	Called by sys_x11.c with each byte the keyboard would have sent: the
+//	make code of a key going down, the same with bit 7 set for it coming
+//	up, 0xe0 ahead of either for the grey keys, 0xe1 for Pause. So the
+//	rest of this is the original interrupt handler, unchanged, and keys
+//	turn into Keyboard[], LastScan and LastASCII exactly as they did.
+//
 ///////////////////////////////////////////////////////////////////////////
-static void interrupt
-INL_KeyService(void)
+void
+INL_KeyService(byte k)
 {
 static	boolean	special;
-		byte	k,c,
-				temp;
+		byte	c;
 		int		i;
-
-	k = inportb(0x60);	// Get the scan code
-
-	// Tell the XT keyboard controller to clear the key
-	outportb(0x61,(temp = inportb(0x61)) | 0x80);
-	outportb(0x61,temp);
 
 	if (k == 0xe0)		// Special key prefix
 		special = true;
@@ -205,7 +201,6 @@ static	boolean	special;
 
 	if (INL_KeyHook && !special)
 		INL_KeyHook();
-	outportb(0x20,0x20);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -214,12 +209,73 @@ static	boolean	special;
 //		mouse driver
 //
 ///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+//
+//	The mouse driver
+//
+//	INT 33h kept a pointer position of its own, in a 640x200 space for the
+//	320x200 modes, and counted the mouse's motion in mickeys: the game's
+//	play loop asks how many since it last asked (function 11), its menus
+//	where the pointer is (3) and put it back in the middle (4). This is that
+//	driver, fed by sys_x11.c with the motion it has seen. The default ratios
+//	are a driver's: eight mickeys to eight pixels across, sixteen down.
+//
+///////////////////////////////////////////////////////////////////////////
+static	int		mousex = 320,mousey = 100;
+static	int		mickeyx,mickeyy;
+
+static void
+INL_PollMouse(void)
+{
+	int	dx,dy;
+
+	SYS_MouseDelta(&dx,&dy);
+	mickeyx += dx;
+	mickeyy += dy;
+
+	mousex += dx;
+	mousey += dy/2;
+	if (mousex < 0)
+		mousex = 0;
+	else if (mousex > 639)
+		mousex = 639;
+	if (mousey < 0)
+		mousey = 0;
+	else if (mousey > 199)
+		mousey = 199;
+}
+
+void
+IN_MouseGetPos(int *x,int *y)
+{
+	INL_PollMouse();
+	*x = mousex;
+	*y = mousey;
+}
+
+void
+IN_MouseSetPos(int x,int y)
+{
+	INL_PollMouse();
+	mousex = x;
+	mousey = y;
+}
+
+void
+IN_MouseMickeys(int *dx,int *dy)
+{
+	INL_PollMouse();
+	if (dx)
+		*dx = mickeyx;
+	if (dy)
+		*dy = mickeyy;
+	mickeyx = mickeyy = 0;
+}
+
 static void
 INL_GetMouseDelta(int *x,int *y)
 {
-	Mouse(MDelta);
-	*x = _CX;
-	*y = _DX;
+	IN_MouseMickeys(x,y);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -231,11 +287,7 @@ INL_GetMouseDelta(int *x,int *y)
 static word
 INL_GetMouseButtons(void)
 {
-	word	buttons;
-
-	Mouse(MButtons);
-	buttons = _BX;
-	return(buttons);
+	return(SYS_MouseButtons());
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -246,73 +298,9 @@ INL_GetMouseButtons(void)
 void
 IN_GetJoyAbs(word joy,word *xp,word *yp)
 {
-	byte	xb,yb,
-			xs,ys;
-	word	x,y;
-
-	x = y = 0;
-	xs = joy? 2 : 0;		// Find shift value for x axis
-	xb = 1 << xs;			// Use shift value to get x bit mask
-	ys = joy? 3 : 1;		// Do the same for y axis
-	yb = 1 << ys;
-
-// Read the absolute joystick values
-asm		pushf				// Save some registers
-asm		push	si
-asm		push	di
-asm		cli					// Make sure an interrupt doesn't screw the timings
-
-
-asm		mov		dx,0x201
-asm		in		al,dx
-asm		out		dx,al		// Clear the resistors
-
-asm		mov		ah,[xb]		// Get masks into registers
-asm		mov		ch,[yb]
-
-asm		xor		si,si		// Clear count registers
-asm		xor		di,di
-asm		xor		bh,bh		// Clear high byte of bx for later
-
-asm		push	bp			// Don't mess up stack frame
-asm		mov		bp,MaxJoyValue
-
-loop:
-asm		in		al,dx		// Get bits indicating whether all are finished
-
-asm		dec		bp			// Check bounding register
-asm		jz		done		// We have a silly value - abort
-
-asm		mov		bl,al		// Duplicate the bits
-asm		and		bl,ah		// Mask off useless bits (in [xb])
-asm		add		si,bx		// Possibly increment count register
-asm		mov		cl,bl		// Save for testing later
-
-asm		mov		bl,al
-asm		and		bl,ch		// [yb]
-asm		add		di,bx
-
-asm		add		cl,bl
-asm		jnz		loop 		// If both bits were 0, drop out
-
-done:
-asm     pop		bp
-
-asm		mov		cl,[xs]		// Get the number of bits to shift
-asm		shr		si,cl		//  and shift the count that many times
-
-asm		mov		cl,[ys]
-asm		shr		di,cl
-
-asm		mov		[x],si		// Store the values into the variables
-asm		mov		[y],di
-
-asm		pop		di
-asm		pop		si
-asm		popf				// Restore the registers
-
-	*xp = x;
-	*yp = y;
+	// No game port. A reading of zero is what an unplugged joystick gave.
+	*xp = 0;
+	*yp = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -389,13 +377,7 @@ static	longword	lasttime;
 static word
 INL_GetJoyButtons(word joy)
 {
-register	word	result;
-
-	result = inportb(0x201);	// Get all the joystick buttons
-	result >>= joy? 6 : 4;	// Shift into bits 0-1
-	result &= 3;				// Mask off the useless bits
-	result ^= 3;
-	return(result);
+	return(0);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -415,7 +397,7 @@ IN_GetJoyButtonsDB(word joy)
 		result1 = INL_GetJoyButtons(joy);
 		lasttime = TimeCount;
 		while (TimeCount == lasttime)
-			;
+			SYS_Spin();
 		result2 = INL_GetJoyButtons(joy);
 	} while (result1 != result2);
 	return(result1);
@@ -432,9 +414,6 @@ INL_StartKbd(void)
 	INL_KeyHook = NULL;			// no key hook routine
 
 	IN_ClearKeysDown();
-
-	OldKeyVect = getvect(KeyInt);
-	setvect(KeyInt,INL_KeyService);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -445,9 +424,6 @@ INL_StartKbd(void)
 static void
 INL_ShutKbd(void)
 {
-	poke(0x40,0x17,peek(0x40,0x17) & 0xfaf0);	// Clear ctrl/alt/shift flags
-
-	setvect(KeyInt,OldKeyVect);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -458,27 +434,7 @@ INL_ShutKbd(void)
 static boolean
 INL_StartMouse(void)
 {
-#if 0
-	if (getvect(MouseInt))
-	{
-		Mouse(MReset);
-		if (_AX == 0xffff)
-			return(true);
-	}
-	return(false);
-#endif
- union REGS regs;
- unsigned char far *vector;
-
-
- if ((vector=MK_FP(peek(0,0x33*4+2),peek(0,0x33*4)))==NULL)
-   return false;
-
- if (*vector == 207)
-   return false;
-
- Mouse(MReset);
- return true;
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -677,7 +633,7 @@ IN_ClearKeysDown(void)
 
 	LastScan = sc_None;
 	LastASCII = key_None;
-	memset (Keyboard,0,sizeof(Keyboard));
+	memset ((void *)Keyboard,0,sizeof(Keyboard));
 }
 
 
@@ -837,7 +793,7 @@ IN_WaitForKey(void)
 	ScanCode	result;
 
 	while (!(result = LastScan))
-		;
+		SYS_Spin();
 	LastScan = 0;
 	return(result);
 }
@@ -854,7 +810,7 @@ IN_WaitForASCII(void)
 	char		result;
 
 	while (!(result = LastASCII))
-		;
+		SYS_Spin();
 	LastASCII = '\0';
 	return(result);
 }
@@ -920,7 +876,7 @@ void IN_Ack (void)
 	IN_StartAck ();
 
 	while (!IN_CheckAck ())
-	;
+		SYS_Spin();
 }
 
 
@@ -942,6 +898,7 @@ boolean IN_UserInput(longword delay)
 	{
 		if (IN_CheckAck())
 			return true;
+		SYS_Spin();
 	} while (TimeCount - lasttime < delay);
 	return(false);
 }
@@ -959,10 +916,7 @@ boolean IN_UserInput(longword delay)
 byte	IN_MouseButtons (void)
 {
 	if (MousePresent)
-	{
-		Mouse(MButtons);
-		return _BX;
-	}
+		return SYS_MouseButtons();
 	else
 		return 0;
 }
@@ -978,13 +932,7 @@ byte	IN_MouseButtons (void)
 
 byte	IN_JoyButtons (void)
 {
-	unsigned joybits;
-
-	joybits = inportb(0x201);	// Get all the joystick buttons
-	joybits >>= 4;				// only the high bits are useful
-	joybits ^= 15;				// return with 1=pressed
-
-	return joybits;
+	return 0;
 }
 
 

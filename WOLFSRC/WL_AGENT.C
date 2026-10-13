@@ -33,7 +33,7 @@
 // player state info
 //
 boolean		running;
-long		thrustspeed;
+int32_t		thrustspeed;
 
 unsigned	plux,pluy;			// player coordinates scaled to unsigned
 
@@ -58,7 +58,7 @@ statetype s_player = {false,0,0,T_Player,NULL,NULL};
 statetype s_attack = {false,0,0,T_Attack,NULL,NULL};
 
 
-long	playerxmove,playerymove;
+int32_t	playerxmove,playerymove;
 
 struct atkinf
 {
@@ -94,7 +94,7 @@ void SelectItem (void);
 boolean TryMove (objtype *ob);
 void T_Player (objtype *ob);
 
-void ClipMove (objtype *ob, long xmove, long ymove);
+void ClipMove (objtype *ob, int32_t xmove, int32_t ymove);
 
 /*
 =============================================================================
@@ -148,10 +148,10 @@ void CheckWeaponChange (void)
 
 void ControlMovement (objtype *ob)
 {
-	long	oldx,oldy;
+	int32_t	oldx,oldy;
 	int		angle,maxxmove;
 	int		angleunits;
-	long	speed;
+	int32_t	speed;
 
 	thrustspeed = 0;
 
@@ -334,7 +334,7 @@ void	UpdateFace (void)
 ===============
 */
 
-void	LatchNumber (int x, int y, int width, long number)
+void	LatchNumber (int x, int y, int width, int32_t number)
 {
 	unsigned	length,c;
 	char	str[20];
@@ -520,7 +520,7 @@ void	DrawScore (void)
 ===============
 */
 
-void	GivePoints (long points)
+void	GivePoints (int32_t points)
 {
 	gamestate.score += points;
 	while (gamestate.score >= gamestate.nextextra)
@@ -802,7 +802,7 @@ boolean TryMove (objtype *ob)
 {
 	int			xl,yl,xh,yh,x,y;
 	objtype		*check;
-	long		deltax,deltay;
+	int32_t		deltax,deltay;
 
 	xl = (ob->x-PLAYERSIZE) >>TILESHIFT;
 	yl = (ob->y-PLAYERSIZE) >>TILESHIFT;
@@ -863,9 +863,9 @@ boolean TryMove (objtype *ob)
 ===================
 */
 
-void ClipMove (objtype *ob, long xmove, long ymove)
+void ClipMove (objtype *ob, int32_t xmove, int32_t ymove)
 {
-	long	basex,basey;
+	int32_t	basex,basey;
 
 	basex = ob->x;
 	basey = ob->y;
@@ -876,8 +876,8 @@ void ClipMove (objtype *ob, long xmove, long ymove)
 		return;
 
 	if (noclip && ob->x > 2*TILEGLOBAL && ob->y > 2*TILEGLOBAL &&
-	ob->x < (((long)(mapwidth-1))<<TILESHIFT)
-	&& ob->y < (((long)(mapheight-1))<<TILESHIFT) )
+	ob->x < (((int32_t)(mapwidth-1))<<TILESHIFT)
+	&& ob->y < (((int32_t)(mapheight-1))<<TILESHIFT) )
 		return;		// walk through walls
 
 	if (!SD_SoundPlaying())
@@ -925,10 +925,10 @@ void VictoryTile (void)
 ===================
 */
 
-void Thrust (int angle, long speed)
+void Thrust (int angle, int32_t speed)
 {
-	long xmove,ymove;
-	long	slowmax;
+	int32_t xmove,ymove;
+	int32_t	slowmax;
 	unsigned	offset;
 
 
@@ -1105,8 +1105,8 @@ void SpawnPlayer (int tilex, int tiley, int dir)
 	player->tiley = tiley;
 	player->areanumber =
 		*(mapsegs[0] + farmapylookup[player->tiley]+player->tilex);
-	player->x = ((long)tilex<<TILESHIFT)+TILEGLOBAL/2;
-	player->y = ((long)tiley<<TILESHIFT)+TILEGLOBAL/2;
+	player->x = ((int32_t)tilex<<TILESHIFT)+TILEGLOBAL/2;
+	player->y = ((int32_t)tiley<<TILESHIFT)+TILEGLOBAL/2;
 	player->state = &s_player;
 	player->angle = (1-dir)*90;
 	if (player->angle<0)
@@ -1133,7 +1133,7 @@ void SpawnPlayer (int tilex, int tiley, int dir)
 void	KnifeAttack (objtype *ob)
 {
 	objtype *check,*closest;
-	long	dist;
+	int32_t	dist;
 
 	SD_PlaySound (ATKKNIFESND);
 // actually fire
@@ -1170,7 +1170,7 @@ void	GunAttack (objtype *ob)
 	objtype *check,*closest,*oldclosest;
 	int		damage;
 	int		dx,dy,dist;
-	long	viewdist;
+	int32_t	viewdist;
 
 	switch (gamestate.weapon)
 	{
@@ -1254,7 +1254,7 @@ void	GunAttack (objtype *ob)
 
 void VictorySpin (void)
 {
-	long	desty;
+	int32_t	desty;
 
 	if (player->angle > 270)
 	{
@@ -1269,7 +1269,7 @@ void VictorySpin (void)
 			player->angle = 270;
 	}
 
-	desty = (((long)player->tiley-5)<<TILESHIFT)-0x3000;
+	desty = (((int32_t)player->tiley-5)<<TILESHIFT)-0x3000;
 
 	if (player->y > desty)
 	{

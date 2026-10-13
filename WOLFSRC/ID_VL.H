@@ -98,21 +98,8 @@ extern	unsigned	bordercolor;
 // VGA hardware routines
 //
 
-#define VGAWRITEMODE(x) asm{\
-cli;\
-mov dx,GC_INDEX;\
-mov al,GC_MODE;\
-out dx,al;\
-inc dx;\
-in al,dx;\
-and al,252;\
-or al,x;\
-out dx,al;\
-sti;}
-
-#define VGAMAPMASK(x) asm{cli;mov dx,SC_INDEX;mov al,SC_MAPMASK;mov ah,x;out dx,ax;sti;}
-#define VGAREADMAP(x) asm{cli;mov dx,GC_INDEX;mov al,GC_READMAP;mov ah,x;out dx,ax;sti;}
-
+// VGAWRITEMODE, VGAMAPMASK and VGAREADMAP set the emulated registers; they
+// are in id_port.h, with the rest of the emulation.
 
 void VL_Startup (void);
 void VL_Shutdown (void);
@@ -153,6 +140,8 @@ void VL_MaskedToScreen (byte far *source, int width, int height, int x, int y);
 
 void VL_DrawTile8String (char *str, char far *tile8ptr, int printx, int printy);
 void VL_DrawLatch8String (char *str, unsigned tile8ptr, int printx, int printy);
+void VL_LatchToScreen (unsigned source, int width, int height, int x, int y);
+void VL_SetCRTC (int crtc);
 void VL_SizeTile8String (char *str, int *width, int *height);
 void VL_DrawPropString (char *str, unsigned tile8ptr, int printx, int printy);
 void VL_SizePropString (char *str, int *width, int *height, char far *font);

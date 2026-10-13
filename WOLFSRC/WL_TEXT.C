@@ -353,7 +353,8 @@ void HandleWord (void)
 {
 	char		word[WORDLIMIT];
 	int			i,wordindex;
-	unsigned	wwidth,wheight,newpos;
+	uint16_t	wwidth,wheight;
+	unsigned	newpos;
 
 
 	//
@@ -670,7 +671,7 @@ void ShowArticle (char far *article)
 			VW_UpdateScreen ();
 			if (firstpage)
 			{
-				VL_FadeIn(0,255,&gamepal,10);
+				VL_FadeIn(0,255,gamepal,10);
 				// VW_FadeIn ()
 				firstpage = false;
 			}
@@ -816,7 +817,7 @@ void EndText (void)
 	SETFONTCOLOR(0,15);
 	IN_ClearKeysDown();
 	if (MousePresent)
-		Mouse(MDelta);	// Clear accumulated mouse movement
+		IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 
 	FreeMusic ();
 	CA_DownLevel ();
@@ -850,7 +851,7 @@ void EndText (void)
 	SETFONTCOLOR(0,15);
 	IN_ClearKeysDown();
 	if (MousePresent)
-		Mouse(MDelta);	// Clear accumulated mouse movement
+		IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 
 	FreeMusic ();
 	CA_DownLevel ();

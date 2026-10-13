@@ -267,7 +267,7 @@ boolean ProjectileTryMove (objtype *ob)
 {
 	int			xl,yl,xh,yh,x,y;
 	objtype		*check;
-	long		deltax,deltay;
+	int32_t		deltax,deltay;
 
 	xl = (ob->x-PROJSIZE) >>TILESHIFT;
 	yl = (ob->y-PROJSIZE) >>TILESHIFT;
@@ -301,11 +301,11 @@ boolean ProjectileTryMove (objtype *ob)
 
 void T_Projectile (objtype *ob)
 {
-	long	deltax,deltay;
+	int32_t	deltax,deltay;
 	int		damage;
-	long	speed;
+	int32_t	speed;
 
-	speed = (long)ob->speed*tics;
+	speed = (int32_t)ob->speed*tics;
 
 	deltax = FixedByFrac(speed,costable[ob->angle]);
 	deltay = -FixedByFrac(speed,sintable[ob->angle]);
@@ -846,7 +846,7 @@ statetype s_gretelshoot8 	= {false,SPR_GRETEL_SHOOT1,10,NULL,NULL,&s_gretelchase
 
 void SpawnStand (enemy_t which, int tilex, int tiley, int dir)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	switch (which)
 	{
@@ -935,7 +935,7 @@ void SpawnDeadGuard (int tilex, int tiley)
 
 void SpawnBoss (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	SpawnNewObj (tilex,tiley,&s_bossstand);
 	new->speed = SPDPATROL;
@@ -958,7 +958,7 @@ void SpawnBoss (int tilex, int tiley)
 
 void SpawnGretel (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	SpawnNewObj (tilex,tiley,&s_gretelstand);
 	new->speed = SPDPATROL;
@@ -1245,7 +1245,7 @@ statetype s_transshoot8 	= {false,SPR_TRANS_SHOOT1,10,NULL,NULL,&s_transchase1};
 
 void SpawnTrans (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (SoundBlasterPresent && DigiMode != sds_Off)
 		s_transdie01.tictime = 105;
@@ -1326,7 +1326,7 @@ statetype s_ubershoot7 	= {false,SPR_UBER_SHOOT1,12,NULL,NULL,&s_uberchase1};
 
 void SpawnUber (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (SoundBlasterPresent && DigiMode != sds_Off)
 		s_uberdie01.tictime = 70;
@@ -1425,7 +1425,7 @@ statetype s_willshoot6 	= {false,SPR_WILL_SHOOT4,10,NULL,T_Shoot,&s_willchase1};
 
 void SpawnWill (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (SoundBlasterPresent && DigiMode != sds_Off)
 		s_willdie2.tictime = 70;
@@ -1449,7 +1449,7 @@ void SpawnWill (int tilex, int tiley)
 
 void T_Will (objtype *ob)
 {
-	long move;
+	int32_t move;
 	int	dx,dy,dist;
 	boolean	dodge;
 
@@ -1514,8 +1514,8 @@ void T_Will (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -1600,7 +1600,7 @@ statetype s_deathshoot5 	= {false,SPR_DEATH_SHOOT4,10,NULL,T_Shoot,&s_deathchase
 
 void SpawnDeath (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (SoundBlasterPresent && DigiMode != sds_Off)
 		s_deathdie2.tictime = 105;
@@ -1623,7 +1623,7 @@ void SpawnDeath (int tilex, int tiley)
 
 void T_Launch (objtype *ob)
 {
-	long	deltax,deltay;
+	int32_t	deltax,deltay;
 	float	angle;
 	int		iangle;
 
@@ -1793,7 +1793,7 @@ void A_Breathing (objtype *ob)
 
 void SpawnAngel (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 
 	if (SoundBlasterPresent && DigiMode != sds_Off)
@@ -1912,7 +1912,7 @@ statetype s_spectrewake	= {false,SPR_SPECTRE_F4,10,NULL,A_Dormant,&s_spectrewake
 
 void SpawnSpectre (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	SpawnNewObj (tilex,tiley,&s_spectrewait1);
 	new->obclass = spectreobj;
@@ -1933,7 +1933,7 @@ void SpawnSpectre (int tilex, int tiley)
 
 void A_Dormant (objtype *ob)
 {
-	long	deltax,deltay;
+	int32_t	deltax,deltay;
 	int	xl,xh,yl,yh;
 	int	x,y;
 	unsigned	tile;
@@ -1993,7 +1993,7 @@ moveok:
 
 void SpawnGhosts (int which, int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	switch(which)
 	{
@@ -2211,7 +2211,7 @@ statetype s_fatshoot6 	= {false,SPR_FAT_SHOOT4,10,NULL,T_Shoot,&s_fatchase1};
 
 void SpawnSchabbs (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (DigiMode != sds_Off)
 		s_schabbdie2.tictime = 140;
@@ -2240,7 +2240,7 @@ void SpawnSchabbs (int tilex, int tiley)
 
 void SpawnGift (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (DigiMode != sds_Off)
 	  s_giftdie2.tictime = 140;
@@ -2269,7 +2269,7 @@ void SpawnGift (int tilex, int tiley)
 
 void SpawnFat (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (DigiMode != sds_Off)
 	  s_fatdie2.tictime = 140;
@@ -2298,7 +2298,7 @@ void SpawnFat (int tilex, int tiley)
 
 void T_SchabbThrow (objtype *ob)
 {
-	long	deltax,deltay;
+	int32_t	deltax,deltay;
 	float	angle;
 	int		iangle;
 
@@ -2338,7 +2338,7 @@ void T_SchabbThrow (objtype *ob)
 
 void T_GiftThrow (objtype *ob)
 {
-	long	deltax,deltay;
+	int32_t	deltax,deltay;
 	float	angle;
 	int		iangle;
 
@@ -2379,7 +2379,7 @@ void T_GiftThrow (objtype *ob)
 
 void T_Schabb (objtype *ob)
 {
-	long move;
+	int32_t move;
 	int	dx,dy,dist;
 	boolean	dodge;
 
@@ -2440,8 +2440,8 @@ void T_Schabb (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -2471,7 +2471,7 @@ void T_Schabb (objtype *ob)
 
 void T_Gift (objtype *ob)
 {
-	long move;
+	int32_t move;
 	int	dx,dy,dist;
 	boolean	dodge;
 
@@ -2532,8 +2532,8 @@ void T_Gift (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -2563,7 +2563,7 @@ void T_Gift (objtype *ob)
 
 void T_Fat (objtype *ob)
 {
-	long move;
+	int32_t move;
 	int	dx,dy,dist;
 	boolean	dodge;
 
@@ -2624,8 +2624,8 @@ void T_Fat (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -2825,7 +2825,7 @@ statetype s_hitlershoot6 	= {false,SPR_HITLER_SHOOT2,10,NULL,T_Shoot,&s_hitlerch
 
 void SpawnFakeHitler (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 
 	if (DigiMode != sds_Off)
@@ -2855,7 +2855,7 @@ void SpawnFakeHitler (int tilex, int tiley)
 
 void SpawnHitler (int tilex, int tiley)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	if (DigiMode != sds_Off)
 		s_hitlerdie2.tictime = 140;
@@ -2885,7 +2885,7 @@ void SpawnHitler (int tilex, int tiley)
 
 void A_HitlerMorph (objtype *ob)
 {
-	unsigned	far *map,tile,hitpoints[4]={500,700,800,900};
+	word	far *map,tile,hitpoints[4]={500,700,800,900};
 
 
 	SpawnNewObj (ob->tilex,ob->tiley,&s_hitlerchase1);
@@ -2932,7 +2932,7 @@ void A_Slurpie (objtype *ob)
 
 void T_FakeFire (objtype *ob)
 {
-	long	deltax,deltay;
+	int32_t	deltax,deltay;
 	float	angle;
 	int		iangle;
 
@@ -2973,7 +2973,7 @@ void T_FakeFire (objtype *ob)
 
 void T_Fake (objtype *ob)
 {
-	long move;
+	int32_t move;
 	int	dx,dy,dist;
 	boolean	dodge;
 
@@ -3013,8 +3013,8 @@ void T_Fake (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -3068,7 +3068,7 @@ void T_Stand (objtype *ob)
 
 void T_Chase (objtype *ob)
 {
-	long move;
+	int32_t move;
 	int	dx,dy,dist,chance;
 	boolean	dodge;
 
@@ -3179,8 +3179,8 @@ void T_Chase (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -3206,7 +3206,7 @@ void T_Chase (objtype *ob)
 
 void T_Ghosts (objtype *ob)
 {
-	long move;
+	int32_t move;
 
 
 	if (ob->dir == nodir)
@@ -3233,8 +3233,8 @@ void T_Ghosts (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -3256,9 +3256,9 @@ void T_Ghosts (objtype *ob)
 
 void T_DogChase (objtype *ob)
 {
-	long 	move;
+	int32_t 	move;
 	int		dist,chance;
-	long	dx,dy;
+	int32_t	dx,dy;
 
 
 	if (ob->dir == nodir)
@@ -3305,8 +3305,8 @@ void T_DogChase (objtype *ob)
 		//
 		// fix position to account for round off during moving
 		//
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 
 		move -= ob->distance;
 
@@ -3366,8 +3366,8 @@ void SelectPathDir (objtype *ob)
 
 void T_Path (objtype *ob)
 {
-	long 	move;
-	long 	deltax,deltay,size;
+	int32_t 	move;
+	int32_t 	deltax,deltay,size;
 
 	if (SightPlayer (ob))
 		return;
@@ -3410,8 +3410,8 @@ void T_Path (objtype *ob)
 
 
 
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 		move -= ob->distance;
 
 		SelectPathDir (ob);
@@ -3529,7 +3529,7 @@ void T_Shoot (objtype *ob)
 
 void T_Bite (objtype *ob)
 {
-	long	dx,dy;
+	int32_t	dx,dy;
 	int	hitchance,damage;
 
 
@@ -3620,7 +3620,7 @@ statetype s_deathcam = {false,0,0,NULL,NULL,NULL};
 
 void SpawnBJVictory (void)
 {
-	unsigned	far *map,tile;
+	word	far *map,tile;
 
 	SpawnNewObj (player->tilex,player->tiley+1,&s_bjrun1);
 	new->x = player->x;
@@ -3642,7 +3642,7 @@ void SpawnBJVictory (void)
 
 void T_BJRun (objtype *ob)
 {
-	long 	move;
+	int32_t 	move;
 
 	move = BJRUNSPEED*tics;
 
@@ -3655,8 +3655,8 @@ void T_BJRun (objtype *ob)
 		}
 
 
-		ob->x = ((long)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
-		ob->y = ((long)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
+		ob->x = ((int32_t)ob->tilex<<TILESHIFT)+TILEGLOBAL/2;
+		ob->y = ((int32_t)ob->tiley<<TILESHIFT)+TILEGLOBAL/2;
 		move -= ob->distance;
 
 		SelectPathDir (ob);
@@ -3680,7 +3680,7 @@ void T_BJRun (objtype *ob)
 
 void T_BJJump (objtype *ob)
 {
-	long 	move;
+	int32_t 	move;
 
 	move = BJJUMPSPEED*tics;
 	MoveObj (ob,move);
@@ -3764,10 +3764,10 @@ boolean	CheckPosition (objtype *ob)
 
 void	A_StartDeathCam (objtype *ob)
 {
-	long	dx,dy;
+	int32_t	dx,dy;
 	float	fangle;
-	long    xmove,ymove;
-	long	dist;
+	int32_t    xmove,ymove;
+	int32_t	dist;
 	int		temp,i;
 
 	FinishPaletteShifts ();

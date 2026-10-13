@@ -8,13 +8,15 @@
 
 //===========================================================================
 
+#pragma pack(push,1)
 typedef	struct
 {
-	long		planestart[3];
-	unsigned	planelength[3];
-	unsigned	width,height;
+	int32_t		planestart[3];
+	word		planelength[3];
+	word		width,height;
 	char		name[16];
 } maptype;
+#pragma pack(pop)
 
 //===========================================================================
 
@@ -23,7 +25,7 @@ extern	char		audioname[13];
 extern	byte 		_seg	*tinf;
 extern	int			mapon;
 
-extern	unsigned	_seg	*mapsegs[MAPPLANES];
+extern	word		_seg	*mapsegs[MAPPLANES];
 extern	maptype		_seg	*mapheaderseg[NUMMAPS];
 extern	byte		_seg	*audiosegs[NUMSNDCHUNKS];
 extern	void		_seg	*grsegs[NUMCHUNKS];
@@ -44,8 +46,8 @@ extern	char		extension[5],
 			aheadname[10],
 			afilename[10];
 
-extern long		_seg *grstarts;	// array of offsets in egagraph, -1 for sparse
-extern long		_seg *audiostarts;	// array of offsets in audio / audiot
+extern int32_t		_seg *grstarts;	// array of offsets in egagraph, -1 for sparse
+extern int32_t		_seg *audiostarts;	// array of offsets in audio / audiot
 //
 // hooks for custom cache dialogs
 //
@@ -64,17 +66,17 @@ void CAL_ShiftSprite (unsigned segment,unsigned source,unsigned dest,
 
 void CA_OpenDebug (void);
 void CA_CloseDebug (void);
-boolean CA_FarRead (int handle, byte far *dest, long length);
-boolean CA_FarWrite (int handle, byte far *source, long length);
+boolean CA_FarRead (int handle, byte far *dest, int32_t length);
+boolean CA_FarWrite (int handle, byte far *source, int32_t length);
 boolean CA_ReadFile (char *filename, memptr *ptr);
 boolean CA_LoadFile (char *filename, memptr *ptr);
-boolean CA_WriteFile (char *filename, void far *ptr, long length);
+boolean CA_WriteFile (char *filename, void far *ptr, int32_t length);
 
-long CA_RLEWCompress (unsigned huge *source, long length, unsigned huge *dest,
-  unsigned rlewtag);
+int32_t CA_RLEWCompress (word huge *source, int32_t length, word huge *dest,
+  word rlewtag);
 
-void CA_RLEWexpand (unsigned huge *source, unsigned huge *dest,long length,
-  unsigned rlewtag);
+void CA_RLEWexpand (word huge *source, word huge *dest,int32_t length,
+  word rlewtag);
 
 void CA_Startup (void);
 void CA_Shutdown (void);

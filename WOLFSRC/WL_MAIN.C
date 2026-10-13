@@ -1,6 +1,5 @@
 // WL_MAIN.C
 
-#include <conio.h>
 #include "WL_DEF.H"
 #pragma hdrstop
 
@@ -58,7 +57,7 @@ int             viewheight;
 int             centerx;
 int             shootdelta;                     // pixels away from centerx a target can be
 fixed           scale,maxslope;
-long            heightnumerator;
+int32_t            heightnumerator;
 int                     minheightdiv;
 
 
@@ -237,28 +236,14 @@ void WriteConfig(void)
 ========================
 */
 
-char    *JHParmStrings[] = {"no386",nil};
 void Patch386 (void)
 {
-extern void far jabhack2(void);
-extern int far  CheckIs386(void);
-
-	int     i;
-
-	for (i = 1;i < _argc;i++)
-		if (US_CheckParm(_argv[i],JHParmStrings) == 0)
-		{
-			IsA386 = false;
-			return;
-		}
-
-	if (CheckIs386())
-	{
-		IsA386 = true;
-		jabhack2();
-	}
-	else
-		IsA386 = false;
+	//
+	// On a 386 this patched Borland's 32-bit division routine, in place,
+	// to use the 386's own 32-bit instructions. The division is the
+	// compiler's own here, and the processor is never a 286.
+	//
+	IsA386 = true;
 }
 
 //===========================================================================
@@ -301,7 +286,7 @@ void DiskFlopAnim(int x,int y)
 }
 
 
-long DoChecksum(byte far *source,unsigned size,long checksum)
+int32_t DoChecksum(byte far *source,unsigned size,int32_t checksum)
 {
  unsigned i;
 
@@ -322,17 +307,11 @@ long DoChecksum(byte far *source,unsigned size,long checksum)
 
 boolean SaveTheGame(int file,int x,int y)
 {
-	struct diskfree_t dfree;
-	long avail,size,checksum;
+	int32_t avail,size,checksum;
 	objtype *ob,nullobj;
 
 
-	if (_dos_getdiskfree(0,&dfree))
-	  Quit("Error in _dos_getdiskfree call");
-
-	avail = (long)dfree.avail_clusters *
-			dfree.bytes_per_sector *
-			dfree.sectors_per_cluster;
+	avail = SYS_DiskFree ();
 
 	size = 0;
 	for (ob = player; ob ; ob=ob->next)
@@ -442,7 +421,7 @@ boolean SaveTheGame(int file,int x,int y)
 
 boolean LoadTheGame(int file,int x,int y)
 {
-	long checksum,oldchecksum;
+	int32_t checksum,oldchecksum;
 	objtype *ob,nullobj;
 
 
@@ -638,10 +617,10 @@ void BuildTables (void)
 ====================
 */
 
-void CalcProjection (long focal)
+void CalcProjection (int32_t focal)
 {
 	int             i;
-	long            intang;
+	int32_t            intang;
 	float   angle;
 	double  tang;
 	double  planedist;
@@ -674,7 +653,7 @@ void CalcProjection (long focal)
 	for (i=0;i<halfview;i++)
 	{
 	// start 1/2 pixel over, so viewangle bisects two middle pixels
-		tang = (long)i*VIEWGLOBAL/viewwidth/facedist;
+		tang = (int32_t)i*VIEWGLOBAL/viewwidth/facedist;
 		angle = atan(tang);
 		intang = angle*radtoint;
 		pixelangle[halfview-1-i] = intang;
@@ -726,31 +705,22 @@ void SetupWalls (void)
 
 void SignonScreen (void)                        // VGA version
 {
-	unsigned        segstart,seglength;
-
 	VL_SetVGAPlaneMode ();
 	VL_TestPaletteSet ();
-	VL_SetPalette (&gamepal);
+	VL_SetPalette (gamepal);
 
 	if (!virtualreality)
 	{
 		VW_SetScreen(0x8000,0);
-		VL_MungePic (&introscn,320,200);
-		VL_MemToScreen (&introscn,320,200,0,0);
+		VL_MungePic (introscn,320,200);
+		VL_MemToScreen (introscn,320,200,0,0);
 		VW_SetScreen(0,0);
 	}
 
 //
-// reclaim the memory from the linked in signon screen
+// The original gave the memory the signon screen was linked into back to
+// the memory manager here. There is no shortage of memory to reclaim.
 //
-	segstart = FP_SEG(&introscn);
-	seglength = 64000/16;
-	if (FP_OFF(&introscn))
-	{
-		segstart++;
-		seglength--;
-	}
-	MML_UseSpace (segstart,seglength);
 }
 
 
@@ -766,7 +736,7 @@ void FinishSignon (void)
 {
 
 #ifndef SPEAR
-	VW_Bar (0,189,300,11,peekb(0xa000,0));
+	VW_Bar (0,189,300,11,VGA_Read(0));
 	WindowX = 0;
 	WindowW = 320;
 	PrintY = 190;
@@ -786,7 +756,7 @@ void FinishSignon (void)
 		IN_Ack ();
 
 	#ifndef JAPAN
-	VW_Bar (0,189,300,11,peekb(0xa000,0));
+	VW_Bar (0,189,300,11,VGA_Read(0));
 
 	PrintY = 190;
 	SETFONTCOLOR(10,4);
@@ -1050,7 +1020,6 @@ void DoJukebox(void)
 			XTOWER2_MUS              // 23
 #endif
 		};
-	struct dostime_t time;
 
 
 
@@ -1063,8 +1032,7 @@ void DoJukebox(void)
 
 #ifndef SPEAR
 #ifndef UPLOAD
-	_dos_gettime(&time);
-	start = (time.hsecond%3)*6;
+	start = (SYS_Hundredths()%3)*6;
 #else
 	start = 0;
 #endif
@@ -1176,8 +1144,7 @@ void InitGame (void)
 		CA_CacheGrChunk (ERRORSCREEN);
 		screen = grsegs[ERRORSCREEN];
 		ShutdownId();
-		movedata ((unsigned)screen,7+7*160,0xb800,0,17*160);
-		gotoxy (1,23);
+		SYS_TextScreen ((byte *)screen+7+7*160,17,NULL,0,0);
 		exit(1);
 	}
 
@@ -1260,8 +1227,8 @@ close(profilehandle);
 
 	if (virtualreality)
 	{
+		// INT 60h started the head tracker's driver. There is none.
 		NoWait = true;
-		geninterrupt(0x60);
 	}
 }
 
@@ -1348,8 +1315,6 @@ void Quit (char *error)
 	unsigned        finscreen;
 	memptr	screen;
 
-	if (virtualreality)
-		geninterrupt(0x61);
 
 	ClearMemory ();
 	if (!*error)
@@ -1368,27 +1333,24 @@ void Quit (char *error)
 
 	ShutdownId ();
 
+	//
+	// The text screens shown on the way out -- the order form, or the
+	// error box with the message written into it at row 4, column 10 --
+	// went straight into the text mode's video memory. They go to the
+	// terminal instead, if there is one, and the error to the log.
+	//
 	if (error && *error)
 	{
-	  movedata ((unsigned)screen,7,0xb800,0,7*160);
-	  gotoxy (10,4);
-	  puts(error);
-	  gotoxy (1,8);
+	  SYS_TextScreen ((byte *)screen+7,7,error,10,4);
+	  fprintf (stderr,"Wolfenstein 3-D: %s\n",error);
 	  exit(1);
 	}
 	else
 	if (!error || !(*error))
 	{
-		clrscr();
 		#ifndef JAPAN
-		movedata ((unsigned)screen,7,0xb800,0,4000);
-		gotoxy(1,24);
+		SYS_TextScreen ((byte *)screen+7,25,NULL,0,0);
 		#endif
-//asm	mov	bh,0
-//asm	mov	dh,23	// row
-//asm	mov	dl,0	// collumn
-//asm	mov ah,2
-//asm	int	0x10
 	}
 
 	exit(0);
@@ -1412,7 +1374,7 @@ void    DemoLoop (void)
 {
 	static int LastDemo;
 	int     i,level;
-	long nsize;
+	int32_t nsize;
 	memptr	nullblock;
 
 //
@@ -1583,9 +1545,12 @@ void    DemoLoop (void)
 
 char    *nosprtxt[] = {"nospr",nil};
 
-void main (void)
+int main (int argc, char **argv)
 {
 	int     i;
+
+	_argc = argc;
+	_argv = argv;
 
 
 #ifdef BETA

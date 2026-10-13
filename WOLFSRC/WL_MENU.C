@@ -4,7 +4,7 @@
 // by John Romero (C) 1992 Id Software, Inc.
 //
 ////////////////////////////////////////////////////////////////////
-#include "wl_def.h"
+#include "WL_DEF.H"
 #pragma hdrstop
 
 //
@@ -476,7 +476,7 @@ void US_ControlPanel(byte scancode)
 					if (SoundMode != sdm_Off)
 						for (i=0;i<NUMSOUNDS;i++,start++)
 							if (audiosegs[start])
-								MM_SetPurge (&(memptr)audiosegs[start],3);		// make purgable
+								MM_SetPurge ((memptr *)&audiosegs[start],3);		// make purgable
 				}
 				#endif
 
@@ -626,17 +626,20 @@ void CP_ReadThis(void)
 ////////////////////////////////////////////////////////////////////
 void BossKey(void)
 {
+	// Into text mode with a DOS prompt, for anyone looking over a
+	// shoulder. A black screen is the nearest thing to that here.
 	SD_MusicOff();
-	_AX = 3;
-	geninterrupt(0x10);
-	printf("C>");
+	VL_FillPalette (0,0,0);
 	while (!Keyboard[sc_Escape])
-	IN_ClearKeysDown();
+	{
+		IN_ClearKeysDown();
+		SYS_Spin();
+	}
 
 	SD_MusicOn();
 	VL_SetVGAPlaneMode ();
 	VL_TestPaletteSet ();
-	VL_SetPalette (&gamepal);
+	VL_SetPalette (gamepal);
 	LoadLatchMem();
 }
 #endif
@@ -721,7 +724,7 @@ int CP_CheckQuick(unsigned scancode)
 				lasttimecount = TimeCount;
 
 				if (MousePresent)
-					Mouse(MDelta);	// Clear accumulated mouse movement
+					IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 
 				PM_CheckMainMem ();
 
@@ -795,7 +798,7 @@ int CP_CheckQuick(unsigned scancode)
 				lasttimecount = TimeCount;
 
 				if (MousePresent)
-					Mouse(MDelta);	// Clear accumulated mouse movement
+					IN_MouseMickeys(NULL,NULL);	// Clear accumulated mouse movement
 				PM_CheckMainMem ();
 
 				#ifndef SPEAR
@@ -1559,7 +1562,7 @@ int CP_SaveGame(int quick)
 
 			strcpy(input,&SaveGameNames[which][0]);
 
-			_dos_write(handle,(void far *)input,32,&nwritten);
+			nwritten = write(handle,(void far *)input,32);
 			lseek(handle,32,SEEK_SET);
 			SaveTheGame(handle,0,0);
 			close(handle);
@@ -1618,7 +1621,7 @@ int CP_SaveGame(int quick)
 
 				unlink(name);
 				handle=creat(name,S_IREAD|S_IWRITE);
-				_dos_write(handle,(void far *)input,32,&nwritten);
+				nwritten = write(handle,(void far *)input,32);
 				lseek(handle,32,SEEK_SET);
 
 				DrawLSAction(1);
@@ -1667,7 +1670,7 @@ int CalibrateJoystick(void)
 	#define CALW	158
 	#define CALH	140
 
-	unsigned xmin,ymin,xmax,ymax,jb;
+	word xmin,ymin,xmax,ymax,jb;
 
 
 
@@ -1781,8 +1784,7 @@ void CP_Control(void)
 		{
 			case MOUSEENABLE:
 				mouseenabled^=1;
-				_CX=_DX=CENTER;
-				Mouse(4);
+				IN_MouseSetPos(CENTER,CENTER);
 				DrawCtlScreen();
 				CusItems.curpos=-1;
 				ShootSnd();
@@ -2225,8 +2227,7 @@ void EnterCtrlData(int index,CustomCtrls *cust,void (*DrawRtn)(int),void (*Print
 	switch(type)
 	{
 	 case MOUSE:
-	   Mouse(3);
-	   button=_BX;
+	   button=IN_MouseButtons();
 	   switch(button)
 	   {
 	case 1: result=1; break;
@@ -2896,7 +2897,7 @@ void IntroScreen(void)
 #endif
 #define FILLCOLOR	14
 
-	long memory,emshere,xmshere;
+	int32_t memory,emshere,xmshere;
 	int i,num,ems[10]={100,200,300,400,500,600,700,800,900,1000},
 		xms[10]={100,200,300,400,500,600,700,800,900,1000},
 		main[10]={32,64,96,128,160,192,224,256,288,320};
@@ -3076,8 +3077,7 @@ void SetupControlPanel(void)
 	//
 	// CENTER MOUSE
 	//
-	_CX=_DX=CENTER;
-	Mouse(4);
+	IN_MouseSetPos(CENTER,CENTER);
 }
 
 
@@ -3503,39 +3503,33 @@ void ReadAnyControl(ControlInfo *ci)
 		// HOME MOUSE
 		// CHECK MOUSE BUTTONS
 
-		Mouse(3);
-		mousex=_CX;
-		mousey=_DX;
+		IN_MouseGetPos(&mousex,&mousey);
 
 		if (mousey<CENTER-SENSITIVE)
 		{
 			ci->dir=dir_North;
-			_CX=_DX=CENTER;
-			Mouse(4);
+			IN_MouseSetPos(CENTER,CENTER);
 			mouseactive=1;
 		}
 		else
 		if (mousey>CENTER+SENSITIVE)
 		{
 			ci->dir=dir_South;
-			_CX=_DX=CENTER;
-			Mouse(4);
+			IN_MouseSetPos(CENTER,CENTER);
 			mouseactive=1;
 		}
 
 		if (mousex<CENTER-SENSITIVE)
 		{
 			ci->dir=dir_West;
-			_CX=_DX=CENTER;
-			Mouse(4);
+			IN_MouseSetPos(CENTER,CENTER);
 			mouseactive=1;
 		}
 		else
 		if (mousex>CENTER+SENSITIVE)
 		{
 			ci->dir=dir_East;
-			_CX=_DX=CENTER;
-			Mouse(4);
+			IN_MouseSetPos(CENTER,CENTER);
 			mouseactive=1;
 		}
 
@@ -3781,7 +3775,7 @@ void StartCPMusic(int song)
 		mmerror = false;
 	else
 	{
-		MM_SetLock(&((memptr)audiosegs[STARTMUSIC + chunk]),true);
+		MM_SetLock((memptr *)&audiosegs[STARTMUSIC + chunk],true);
 		SD_StartMusic((MusicGroup far *)audiosegs[STARTMUSIC + chunk]);
 	}
 }

@@ -4,8 +4,7 @@
 #define DAY		30
 
 #include "ID_HEADS.H"
-#include <MATH.H>
-#include <VALUES.H>
+#include <math.h>
 
 #include "WL_MENU.H"
 
@@ -36,7 +35,7 @@
 
 #define SIGN(x) 	((x)>0?1:-1)
 #define ABS(x) 		((int)(x)>0?(x):-(x))
-#define LABS(x) 	((long)(x)>0?(x):-(x))
+#define LABS(x) 	((int32_t)(x)>0?(x):-(x))
 
 /*
 =============================================================================
@@ -477,7 +476,7 @@ enum	{
 =============================================================================
 */
 
-typedef long fixed;
+typedef int32_t fixed;
 
 typedef enum {
 	di_north,
@@ -656,7 +655,7 @@ typedef struct objstruct
 
 	byte		flags;				//	FL_SHOOTABLE, etc
 
-	long		distance;			// if negative, wait for that door to open
+	int32_t		distance;			// if negative, wait for that door to open
 	dirtype		dir;
 
 	fixed 		x,y;
@@ -669,7 +668,7 @@ typedef struct objstruct
 
 	int 		angle;
 	int			hitpoints;
-	long		speed;
+	int32_t		speed;
 
 	int			temp1,temp2,temp3;
 	struct		objstruct	*next,*prev;
@@ -716,7 +715,7 @@ typedef	struct
 {
 	int			difficulty;
 	int			mapon;
-	long		oldscore,score,nextextra;
+	int32_t		oldscore,score,nextextra;
 	int			lives;
 	int			health;
 	int			ammo;
@@ -728,8 +727,8 @@ typedef	struct
 
 	int			episode,secretcount,treasurecount,killcount,
 				secrettotal,treasuretotal,killtotal;
-	long		TimeCount;
-	long		killx,killy;
+	int32_t		TimeCount;
+	int32_t		killx,killy;
 	boolean		victoryflag;		// set during victory animations
 } gametype;
 
@@ -782,14 +781,14 @@ extern	int		mouseadjustment;
 // math tables
 //
 extern	int			pixelangle[MAXVIEWWIDTH];
-extern	long		far finetangent[FINEANGLES/4];
+extern	int32_t		far finetangent[FINEANGLES/4];
 extern	fixed 		far sintable[],far *costable;
 
 //
 // derived constants
 //
 extern	fixed 	scale,maxslope;
-extern	long	heightnumerator;
+extern	int32_t	heightnumerator;
 extern	int		minheightdiv;
 
 extern	char	configname[13];
@@ -800,7 +799,7 @@ void		HelpScreens (void);
 void		OrderingInfo (void);
 void		TEDDeath(void);
 void		Quit (char *error);
-void 		CalcProjection (long focal);
+void 		CalcProjection (int32_t focal);
 boolean		SetViewSize (unsigned width, unsigned height);
 void		NewGame (int difficulty,int episode);
 void 		NewViewSize (int width);
@@ -826,7 +825,7 @@ extern	int			doornum;
 
 extern	char		demoname[13];
 
-extern	long		spearx,speary;
+extern	int32_t		spearx,speary;
 extern	unsigned	spearangle;
 extern	boolean		spearflag;
 
@@ -847,7 +846,7 @@ void DrawAllPlayBorderSides (void);
 
 
 // JAB
-#define	PlaySoundLocTile(s,tx,ty)	PlaySoundLocGlobal(s,(((long)(tx) << TILESHIFT) + (1L << (TILESHIFT - 1))),(((long)ty << TILESHIFT) + (1L << (TILESHIFT - 1))))
+#define	PlaySoundLocTile(s,tx,ty)	PlaySoundLocGlobal(s,(((int32_t)(tx) << TILESHIFT) + (1L << (TILESHIFT - 1))),(((int32_t)ty << TILESHIFT) + (1L << (TILESHIFT - 1))))
 #define	PlaySoundLocActor(s,ob)		PlaySoundLocGlobal(s,(ob)->x,(ob)->y)
 void	PlaySoundLocGlobal(word s,fixed gx,fixed gy);
 void UpdateSoundLoc(void);
@@ -862,7 +861,7 @@ void UpdateSoundLoc(void);
 */
 
 #ifdef SPEAR
-extern	long		funnyticount;		// FOR FUNNY BJ FACE
+extern	int32_t		funnyticount;		// FOR FUNNY BJ FACE
 #endif
 
 extern	exit_t		playstate;
@@ -938,7 +937,7 @@ void StartBonusFlash (void);
 void IntroScreen (void);
 void PreloadGraphics(void);
 void LevelCompleted (void);
-void	CheckHighScore (long score,word other);
+void	CheckHighScore (int32_t score,word other);
 void Victory (void);
 void ClearSplitVWB (void);
 
@@ -966,8 +965,8 @@ void PicturePause (void);
 extern	unsigned screenloc[3];
 extern	unsigned freelatch;
 
-extern	long 	lasttimecount;
-extern	long 	frameon;
+extern	int32_t 	lasttimecount;
+extern	int32_t 	frameon;
 extern	boolean	fizzlein;
 
 extern	unsigned	wallheight[MAXVIEWWIDTH];
@@ -980,14 +979,14 @@ extern	fixed	mindist;
 // math tables
 //
 extern	int			pixelangle[MAXVIEWWIDTH];
-extern	long		far finetangent[FINEANGLES/4];
+extern	int32_t		far finetangent[FINEANGLES/4];
 extern	fixed 		far sintable[],far *costable;
 
 //
 // derived constants
 //
 extern	fixed 	scale;
-extern	long	heightnumerator,mindist;
+extern	int32_t	heightnumerator,mindist;
 
 //
 // refresh variables
@@ -996,7 +995,8 @@ extern	fixed	viewx,viewy;			// the focal point
 extern	int		viewangle;
 extern	fixed	viewsin,viewcos;
 
-extern	long		postsource;
+extern	byte		*postpage;		// the wall's page in VSWAP
+extern	unsigned	postsource;		// and the column's offset in it
 extern	unsigned	postx;
 extern	unsigned	postwidth;
 
@@ -1041,7 +1041,7 @@ boolean TryWalk (objtype *ob);
 void 	SelectChaseDir (objtype *ob);
 void 	SelectDodgeDir (objtype *ob);
 void	SelectRunDir (objtype *ob);
-void	MoveObj (objtype *ob, long move);
+void	MoveObj (objtype *ob, int32_t move);
 boolean SightPlayer (objtype *ob);
 
 void	KillActor (objtype *ob);
@@ -1060,25 +1060,32 @@ boolean	CheckSight (objtype *ob);
 */
 
 
-#define COMPSCALECODESTART	(65*4)		// offset to start of code in comp scaler
-
+//
+// A scaler. The original compiled one for each height: x86 code that, for
+// each of the 64 source pixels, loaded the pixel and stored it in as many
+// screen rows as it covered. This is the same thing as a table, which
+// WL_SCALE.C walks instead of calling: the rows source pixel src covers are
+// start[src] up to end[src], already offset to centre the post in the view,
+// and width[src] is how many that is before the view clips it.
+//
 typedef struct
 {
-	unsigned	codeofs[65];
-	unsigned	width[65];
-	byte		code[];
+	int			width[65];
+	int			start[65],end[65];
 }	t_compscale;
 
+// A sprite in VSWAP, as it is on disk: 16-bit words
+#pragma pack(push,1)
 typedef struct
 {
-	unsigned	leftpix,rightpix;
-	unsigned	dataofs[64];
+	word		leftpix,rightpix;
+	word		dataofs[64];
 // table data after dataofs[rightpix-leftpix+1]
 }	t_compshape;
+#pragma pack(pop)
 
 
 extern	t_compscale _seg *scaledirectory[MAXSCALEHEIGHT+1];
-extern	long			fullscalefarcall[MAXSCALEHEIGHT+1];
 
 extern	byte		bitmasks1[8][8];
 extern	byte		bitmasks2[8][8];
@@ -1089,6 +1096,12 @@ extern	byte		mapmasks2[4][8];
 extern	byte		mapmasks3[4][8];
 
 extern	int			maxscale,maxscaleshl2;
+
+void ScaleLine (void);
+void ScaleColumn (t_compscale *comp, byte *page, unsigned ofs, int start, int end);
+
+extern	int			slinex,slinewidth;
+extern	word		far *linecmds;
 
 extern	boolean	insetupscaling;
 
@@ -1108,7 +1121,7 @@ void SimpleScaleShape (int xcenter, int shapenum, unsigned height);
 // player state info
 //
 extern	boolean		running;
-extern	long		thrustspeed;
+extern	int32_t		thrustspeed;
 extern	unsigned	plux,pluy;		// player coordinates scaled to unsigned
 
 extern	int			anglefrac;
@@ -1123,7 +1136,7 @@ void	DrawLevel (void);
 void	DrawLives (void);
 void	GiveExtraMan (void);
 void	DrawScore (void);
-void	GivePoints (long points);
+void	GivePoints (int32_t points);
 void	DrawWeapon (void);
 void	DrawKeys (void);
 void	GiveWeapon (int weapon);
@@ -1132,7 +1145,7 @@ void	GiveAmmo (int ammo);
 void	GiveKey (int key);
 void	GetBonus (statobj_t *check);
 
-void	Thrust (int angle, long speed);
+void	Thrust (int angle, int32_t speed);
 
 /*
 =============================================================================
@@ -1247,6 +1260,10 @@ void KillActor (objtype *ob);
 void	US_ControlPanel(byte);
 
 void SpawnDeadGuard (int tilex, int tiley);
+void SpawnBJVictory (void);
+void A_DeathScream (objtype *ob);
+void PG13 (void);
+void FreeMusic (void);
 void SpawnBoss (int tilex, int tiley);
 void SpawnGretel (int tilex, int tiley);
 void SpawnTrans (int tilex, int tiley);

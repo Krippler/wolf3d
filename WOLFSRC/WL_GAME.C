@@ -4,7 +4,7 @@
 #pragma hdrstop
 
 #ifdef MYPROFILE
-#include <TIME.H>
+#include <time.h>
 #endif
 
 
@@ -29,7 +29,7 @@ boolean		ingame,fizzlein;
 unsigned	latchpics[NUMLATCHPICS];
 gametype	gamestate;
 
-long		spearx,speary;
+int32_t		spearx,speary;
 unsigned	spearangle;
 boolean		spearflag;
 
@@ -222,7 +222,7 @@ void ScanInfoPlane (void)
 {
 	unsigned	x,y,i,j;
 	int			tile;
-	unsigned	far	*start;
+	word	far	*start;
 
 	start = mapsegs[1];
 	for (y=0;y<mapheight;y++)
@@ -625,7 +625,7 @@ void ScanInfoPlane (void)
 void SetupGameLevel (void)
 {
 	int	x,y,i;
-	unsigned	far *map,tile,spot;
+	word	far *map,tile,spot;
 
 
 	if (!loadedgame)
@@ -671,13 +671,13 @@ void SetupGameLevel (void)
 			{
 			// solid wall
 				tilemap[x][y] = tile;
-				(unsigned)actorat[x][y] = tile;
+				actorat[x][y] = (objtype *)(uintptr_t) (tile);
 			}
 			else
 			{
 			// area floor
 				tilemap[x][y] = 0;
-				(unsigned)actorat[x][y] = 0;
+				actorat[x][y] = (objtype *)(uintptr_t) (0);
 			}
 		}
 
@@ -734,7 +734,7 @@ void SetupGameLevel (void)
 			if (tile == AMBUSHTILE)
 			{
 				tilemap[x][y] = 0;
-				if ( (unsigned)actorat[x][y] == AMBUSHTILE)
+				if ( (uintptr_t)actorat[x][y] == AMBUSHTILE)
 					actorat[x][y] = NULL;
 
 				if (*map >= AREATILE)
@@ -936,7 +936,7 @@ char	demoname[13] = "DEMO?.";
 
 void FinishDemoRecord (void)
 {
-	long	length,level;
+	int32_t	length,level;
 
 	demorecord = false;
 
@@ -1066,7 +1066,8 @@ void PlayDemo (int demonumber)
 	NewGame (1,0);
 	gamestate.mapon = *demoptr++;
 	gamestate.difficulty = gd_hard;
-	length = *((unsigned far *)demoptr)++;
+	length = (byte)demoptr[0] | (byte)demoptr[1] << 8;	// a 16-bit word
+	demoptr += 2;
 	demoptr++;
 	lastdemoptr = demoptr-4+length;
 
@@ -1114,7 +1115,7 @@ void PlayDemo (int demonumber)
 void Died (void)
 {
 	float	fangle;
-	long	dx,dy;
+	int32_t	dx,dy;
 	int		iangle,curangle,clockwise,counter,change;
 
 	gamestate.weapon = -1;			// take away weapon
@@ -1291,7 +1292,7 @@ startplayloop:
 			SD_PlaySound(GETSPEARSND);
 			if (DigiMode != sds_Off)
 			{
-				long lasttimecount = TimeCount;
+				int32_t lasttimecount = TimeCount;
 
 				while(TimeCount < lasttimecount+150)
 				//while(DigiPlaying!=false)
