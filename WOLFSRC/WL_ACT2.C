@@ -1936,7 +1936,7 @@ void A_Dormant (objtype *ob)
 	int32_t	deltax,deltay;
 	int	xl,xh,yl,yh;
 	int	x,y;
-	unsigned	tile;
+	uintptr_t	tile;
 
 	deltax = ob->x - player->x;
 	if (deltax < -MINACTORDIST || deltax > MINACTORDIST)
@@ -1956,7 +1956,7 @@ moveok:
 	for (y=yl ; y<=yh ; y++)
 		for (x=xl ; x<=xh ; x++)
 		{
-			tile = actorat[x][y];
+			tile = (uintptr_t)actorat[x][y];
 			if (!tile)
 				continue;
 			if (tile<256)

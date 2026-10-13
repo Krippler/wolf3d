@@ -940,6 +940,7 @@ void LevelCompleted (void);
 void	CheckHighScore (int32_t score,word other);
 void Victory (void);
 void ClearSplitVWB (void);
+void CopyProtection (void);
 
 
 /*
@@ -1129,6 +1130,7 @@ extern	int			facecount;
 
 void	SpawnPlayer (int tilex, int tiley, int dir);
 void 	DrawFace (void);
+void	StatusDrawPic (unsigned x, unsigned y, unsigned picnum);
 void	DrawHealth (void);
 void	TakeDamage (int points,objtype *attacker);
 void	HealSelf (int points);
