@@ -212,7 +212,7 @@ jobs:
         run: |
           set -eu
           tar -xzf "${{ steps.tarball.outputs.file }}" -C dist
-          for bin in dist/*/lib/wolf3d/wolf3d dist/*/lib/wolf3d/wolf3d-wl1; do
+          for bin in dist/*/lib/wolf3d/wolf3d*; do
             echo "== $bin"
             objdump -T "$bin" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1
             objdump -p "$bin" | awk '/NEEDED/ {print $2}'

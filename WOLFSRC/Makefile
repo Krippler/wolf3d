@@ -2,11 +2,13 @@
 #
 # Wolfenstein 3-D for 64-bit Linux
 #
-# Builds two engines, because the chunk numbers of the graphics are
-# compiled in and the shareware episode's differ from the full game's:
+# Builds an engine for each game, because the chunk numbers of the
+# graphics, sounds and music are compiled in and every game's differ:
 #
 #	linux/wolf3d		the registered game, *.WL6 (or the 3-episode *.WL3)
 #	linux/wolf3d-wl1	the shareware episode, *.WL1, version 1.4
+#	linux/wolf3d-sod	Spear of Destiny, *.SOD
+#	linux/wolf3d-sdm	Spear of Destiny's two-level demo, *.SDM
 #
 # The original was built by Borland C++ 3.1 from WOLF3D.PRJ; those files are
 # left as they were. PULSE=0 leaves out PulseAudio, for a build that only
@@ -43,25 +45,30 @@ endif
 O		= linux
 
 GAME	= WL_ACT1 WL_ACT2 WL_AGENT WL_DEBUG WL_DRAW WL_GAME WL_INTER \
-		  WL_MAIN WL_MENU WL_PLAY WL_SCALE WL_STATE WL_TEXT \
+		  WL_MAIN WL_MENU WL_PLAY WL_SCALE WL_STATE \
 		  ID_CA ID_IN ID_MM ID_PM ID_SD ID_US_1 ID_US_A ID_VH ID_VL
 SYS		= sys_x11 sys_port sys_audio sys_pad
+
+# The help screens and the end text: Spear of Destiny had neither, and its
+# project left WL_TEXT.C out
+TEXT_wl6 = WL_TEXT
+TEXT_wl1 = WL_TEXT
+TEXT_sod =
+TEXT_sdm =
 DATA	= gamepal signon
 
-all: $(O)/wolf3d $(O)/wolf3d-wl1
+# Each game: its directory under $(O), its define, and its engine's name
+VARIANTS = wl6 wl1 sod sdm
+DEF_wl6	=
+DEF_wl1	= -DWOLF_WL1
+DEF_sod	= -DWOLF_SOD
+DEF_sdm	= -DWOLF_SDM
+BIN_wl6	= wolf3d
+BIN_wl1	= wolf3d-wl1
+BIN_sod	= wolf3d-sod
+BIN_sdm	= wolf3d-sdm
 
-# The engine is compiled twice, once for each game; everything else once.
-$(O)/wl6/%.o: %.C *.H id_port.h | $(O)/wl6
-	$(CC) $(CPPFLAGS) $(CFLAGS) -x c -c $< -o $@
-
-$(O)/wl1/%.o: %.C *.H id_port.h | $(O)/wl1
-	$(CC) $(CPPFLAGS) -DWOLF_WL1 $(CFLAGS) -x c -c $< -o $@
-
-$(O)/wl6/%.o: %.c *.H id_port.h | $(O)/wl6
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
-
-$(O)/wl1/%.o: %.c *.H id_port.h | $(O)/wl1
-	$(CC) $(CPPFLAGS) -DWOLF_WL1 $(CFLAGS) -c $< -o $@
+all: $(foreach v,$(VARIANTS),$(O)/$(BIN_$(v)))
 
 $(O)/opl3.o: opl/opl3.c opl/opl3.h | $(O)
 	$(CC) $(CFLAGS) -w -c $< -o $@
@@ -79,28 +86,34 @@ $(O)/data/signon.c: OBJ/SIGNON.OBJ $(O)/obj2c | $(O)/data
 $(O)/obj2c: tools/obj2c.c | $(O)
 	$(CC) -O2 -o $@ $<
 
+#
+# The engine, once for each game
+#
+define variant
+$(O)/$(1)/%.o: %.C *.H id_port.h | $(O)/$(1)
+	$$(CC) $$(CPPFLAGS) $(DEF_$(1)) $$(CFLAGS) -x c -c $$< -o $$@
+
+$(O)/$(1)/%.o: %.c *.H id_port.h | $(O)/$(1)
+	$$(CC) $$(CPPFLAGS) $(DEF_$(1)) $$(CFLAGS) -c $$< -o $$@
+
 # Every actor state, for the savegames: see tools/mkstates.sh
-$(O)/wl6/states.c: WL_*.C *.H tools/mkstates.sh | $(O)/wl6
-	sh tools/mkstates.sh $(CC) $(CPPFLAGS) > $@
+$(O)/$(1)/states.c: WL_*.C *.H tools/mkstates.sh | $(O)/$(1)
+	sh tools/mkstates.sh $$(CC) $$(CPPFLAGS) $(DEF_$(1)) > $$@
 
-$(O)/wl1/states.c: WL_*.C *.H tools/mkstates.sh | $(O)/wl1
-	sh tools/mkstates.sh $(CC) $(CPPFLAGS) -DWOLF_WL1 > $@
+$(O)/$(1)/states.o: $(O)/$(1)/states.c
+	$$(CC) $$(CFLAGS) -c $$< -o $$@
 
-$(O)/wl6/states.o: $(O)/wl6/states.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(O)/wl1/states.o: $(O)/wl1/states.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(O)/wolf3d: $(addprefix $(O)/wl6/,$(addsuffix .o,$(GAME) $(SYS) states)) \
+$(O)/$(BIN_$(1)): $(addprefix $(O)/$(1)/,$(addsuffix .o,$(GAME) $(TEXT_$(1)) $(SYS) states)) \
 		$(O)/opl3.o $(addprefix $(O)/data/,$(addsuffix .o,$(DATA)))
-	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
+	$$(CC) $$(CFLAGS) -o $$@ $$^ $$(LDLIBS)
 
-$(O)/wolf3d-wl1: $(addprefix $(O)/wl1/,$(addsuffix .o,$(GAME) $(SYS) states)) \
-		$(O)/opl3.o $(addprefix $(O)/data/,$(addsuffix .o,$(DATA)))
-	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
+$(O)/$(1):
+	mkdir -p $$@
+endef
 
-$(O) $(O)/wl6 $(O)/wl1 $(O)/data:
+$(foreach v,$(VARIANTS),$(eval $(call variant,$(v))))
+
+$(O) $(O)/data:
 	mkdir -p $@
 
 clean:

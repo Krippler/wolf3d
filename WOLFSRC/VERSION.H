@@ -1,10 +1,15 @@
 //
 // Which game this build is for. The original chose by editing this file;
-// the Makefile passes WOLF_WL1 for the shareware episode instead, and the
+// the Makefile passes WOLF_WL1 for the shareware episode, WOLF_SOD for
+// Spear of Destiny and WOLF_SDM for its two-level demo instead, and the
 // registered six episodes are the default, as they were here.
 //
-#ifdef WOLF_WL1
+#if defined(WOLF_WL1)
 #include "WOLF1VER.H"
+#elif defined(WOLF_SOD)
+#include "SODVER.H"
+#elif defined(WOLF_SDM)
+#include "SDMVER.H"
 #else
 //#define SPEAR
 //#define JAPAN

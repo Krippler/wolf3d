@@ -27,8 +27,9 @@ make -C "$here/WOLFSRC" -j"$(nproc)"
 root="$stage/$name"
 install -d "$root/bin" "$root/lib/wolf3d/shareware" \
            "$root/share/applications" "$root/share/icons/hicolor/128x128/apps"
-install -m 755 "$here/WOLFSRC/linux/wolf3d" "$here/WOLFSRC/linux/wolf3d-wl1" "$root/lib/wolf3d/"
-strip "$root/lib/wolf3d/wolf3d" "$root/lib/wolf3d/wolf3d-wl1"
+install -m 755 "$here"/WOLFSRC/linux/wolf3d "$here"/WOLFSRC/linux/wolf3d-wl1 \
+               "$here"/WOLFSRC/linux/wolf3d-sod "$here"/WOLFSRC/linux/wolf3d-sdm "$root/lib/wolf3d/"
+strip "$root"/lib/wolf3d/wolf3d*
 install -m 644 "$here"/shareware/* "$root/lib/wolf3d/shareware/"
 install -m 755 "$here/desktop/wolf3d" "$root/bin/wolf3d"
 install -m 644 "$here/desktop/wolf3d.desktop" "$root/share/applications/"

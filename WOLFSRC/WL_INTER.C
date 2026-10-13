@@ -1708,9 +1708,6 @@ void CopyProtection(void)
 
 	_fstrcpy(message,DosMessages[US_RndT()%9]);
 
-	_AX = 3;
-	geninterrupt(0x10);
-
 	printf("%s\n",message);
 	exit(1);
 }

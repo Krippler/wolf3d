@@ -1692,9 +1692,16 @@ void    DemoLoop (void)
 		#endif
 		#else
 
+			//
+			// Spear of Destiny asked three questions out of its printed
+			// manual before it would play, and quit to DOS on a wrong
+			// answer. Copies sold now come without the manual, so it is
+			// not asked; WOLF_COPYPROTECTION=1 asks it anyway.
+			//
 			#ifndef GOODTIMES
 			#ifndef SPEARDEMO
-			CopyProtection();
+			if (getenv ("WOLF_COPYPROTECTION"))
+				CopyProtection();
 			#endif
 			#endif
 

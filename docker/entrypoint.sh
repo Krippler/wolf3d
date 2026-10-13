@@ -75,52 +75,94 @@ export HOME="$STATE"
 cd "$STATE"
 
 #
-# Which game, and so which engine. The chunk numbers in the graphics are
-# compiled in and differ between the shareware episode and the full game,
-# so there is an engine for each:
+# Which game, and so which engine. The chunk numbers of the graphics, sounds
+# and music are compiled in and differ between games, so there is an engine
+# for each:
 #
-#   *.WL6, *.WL3   the registered game, three or six episodes     wolf3d
-#   *.WL1          the shareware episode, version 1.4             wolf3d-wl1
+#   wl6   *.WL6, *.WL3   the registered game, six or three episodes   wolf3d
+#   wl1   *.WL1          the shareware episode, version 1.4           wolf3d-wl1
+#   sod   *.SOD          Spear of Destiny                             wolf3d-sod
+#   sd2   *.SD2          its first mission pack, Return to Danger     wolf3d-sod
+#   sd3   *.SD3          its second, Ultimate Challenge               wolf3d-sod
+#   sdm   *.SDM          Spear of Destiny's two-level demo            wolf3d-sdm
 #
-# A mounted registered game wins over a mounted shareware one, and anything
-# mounted wins over the shareware built into the image.
+# Every game found at WOLF_DATAMOUNT is offered in the game's Settings, and
+# the one chosen there is remembered in the state directory; until one is,
+# the first in the order above is played. The shareware built into the
+# image is always there too.
 #
 has() {     # has DIR EXTENSION: is there a VSWAP of that kind, in any case?
     [ -d "$1" ] || return 1
     find "$1" -maxdepth 1 -type f -iname "vswap.$2" 2>/dev/null | grep -q .
 }
 
-if has "$DATAMOUNT" wl6 || has "$DATAMOUNT" wl3; then
-    DATA="$DATAMOUNT"
-    ENGINE="$ENGINES/wolf3d"
-    log "playing the registered game from $DATAMOUNT"
-elif has "$DATAMOUNT" wl1; then
-    DATA="$DATAMOUNT"
-    ENGINE="$ENGINES/wolf3d-wl1"
-    log "playing the shareware episode from $DATAMOUNT"
-else
-    if has "$DATAMOUNT" sod || has "$DATAMOUNT" sdm; then
-        log "Spear of Destiny files are mounted at $DATAMOUNT, and this engine"
-        log "does not play Spear of Destiny yet. Playing the shareware instead."
-    elif [ -d "$DATAMOUNT" ] && [ -n "$(ls -A "$DATAMOUNT" 2>/dev/null)" ]; then
-        log "nothing at $DATAMOUNT looks like Wolfenstein 3-D data (no VSWAP.WL6,"
-        log ".WL3 or .WL1). Playing the shareware built into the image."
-    fi
-
-    # The shareware is checked before it is used, as the DOOM container
-    # checks its IWAD: a corrupt copy would otherwise fail somewhere deep
-    # in the engine with no hint that the data was the problem.
-    if [ -f "$SHAREWARE/SHA256SUMS" ]; then
-        ( cd "$SHAREWARE" && sha256sum -c --quiet SHA256SUMS ) >/dev/null 2>&1 \
-            || die "the shareware data in $SHAREWARE does not match its checksums"
-    fi
-    DATA="$SHAREWARE"
-    ENGINE="$ENGINES/wolf3d-wl1"
-    log "playing the shareware episode (mount your own game at $DATAMOUNT)"
+# The shareware is checked before it is offered, as the DOOM container checks
+# its IWAD: a corrupt copy would otherwise fail somewhere deep in the engine
+# with no hint that the data was the problem.
+shareware_ok=0
+if [ -f "$SHAREWARE/SHA256SUMS" ]; then
+    ( cd "$SHAREWARE" && sha256sum -c --quiet SHA256SUMS ) >/dev/null 2>&1 \
+        && shareware_ok=1 \
+        || log "the shareware data in $SHAREWARE does not match its checksums"
+elif has "$SHAREWARE" wl1; then
+    shareware_ok=1
 fi
 
-[ -x "$ENGINE" ] || die "no engine at $ENGINE"
-export WOLF_DATA="$DATA"
+GAMES=""
+for kind in wl6 sod sd2 sd3 wl1 sdm; do
+    if has "$DATAMOUNT" "$kind" || { [ "$kind" = wl6 ] && has "$DATAMOUNT" wl3; }; then
+        GAMES="$GAMES $kind"
+    fi
+done
+case " $GAMES " in
+    *" wl1 "*) ;;
+    *) [ "$shareware_ok" = 1 ] && GAMES="$GAMES wl1" ;;
+esac
+GAMES="${GAMES# }"
+[ -n "$GAMES" ] || die "no game data: nothing at $DATAMOUNT, and no shareware in the image"
+
+if [ -d "$DATAMOUNT" ] && [ -n "$(ls -A "$DATAMOUNT" 2>/dev/null)" ] \
+   && [ "$GAMES" = "wl1" ] && ! has "$DATAMOUNT" wl1; then
+    log "nothing at $DATAMOUNT looks like game data (no VSWAP.WL6, .WL3, .WL1,"
+    log ".SOD, .SD2, .SD3 or .SDM). Playing the shareware built into the image."
+fi
+
+# What to play: WOLF_GAME if set, the one last chosen in the game, or the
+# first there is
+pick_game() {
+    want="${WOLF_GAME:-}"
+    [ -z "$want" ] && [ -f "$STATE/game" ] && want=$(cat "$STATE/game" 2>/dev/null)
+    case " $GAMES " in
+        *" $want "*) GAME="$want" ;;
+        *) GAME="${GAMES%% *}" ;;
+    esac
+
+    case "$GAME" in
+        wl6)         ENGINE="$ENGINES/wolf3d";     name="the registered game" ;;
+        wl1)         ENGINE="$ENGINES/wolf3d-wl1"; name="the shareware episode" ;;
+        sod|sd2|sd3) ENGINE="$ENGINES/wolf3d-sod"; name="Spear of Destiny" ;;
+        sdm)         ENGINE="$ENGINES/wolf3d-sdm"; name="the Spear of Destiny demo" ;;
+    esac
+    case "$GAME" in
+        sd2) export WOLF_MISSION=2; name="$name, Return to Danger" ;;
+        sd3) export WOLF_MISSION=3; name="$name, Ultimate Challenge" ;;
+        *)   unset WOLF_MISSION ;;
+    esac
+
+    if [ "$GAME" = wl1 ] && ! has "$DATAMOUNT" wl1; then
+        DATA="$SHAREWARE"
+    else
+        DATA="$DATAMOUNT"
+    fi
+
+    [ -x "$ENGINE" ] || die "no engine at $ENGINE"
+    export WOLF_DATA="$DATA" WOLF_GAME_NOW="$GAME" WOLF_GAMES="$GAMES"
+    log "playing $name from $DATA"
+}
+
+log "games here: $GAMES"
+pick_game
+
 
 #
 # Where the sound goes: to the browser, unless a PulseAudio server has been
@@ -252,6 +294,7 @@ while :; do
 
     case "$status" in
         0)   log "the game was quit"; why=quit ;;
+        3)   log "a different game was chosen in the settings"; why=switch ;;
         132) log "the engine hit an illegal instruction (SIGILL)"; why=crash ;;
         134) log "the engine was aborted (SIGABRT)"; why=crash ;;
         136) log "the engine hit an arithmetic error (SIGFPE)"; why=crash ;;
@@ -263,6 +306,11 @@ while :; do
     [ -n "$why" ] || break
     [ "$SHUTTING_DOWN" = "0" ] || break
     [ "$RESTART" = "1" ] || break
+
+    if [ "$why" = "switch" ]; then
+        pick_game
+        continue
+    fi
 
     now=$(date +%s)
     if [ "$((now - started))" -lt 10 ]; then

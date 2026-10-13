@@ -619,9 +619,8 @@ void CP_ReadThis(void)
 #endif
 #endif
 
-#ifndef SPEAR
-#ifndef GOODTIMES
-#else
+// Spear of Destiny's F1 is the boss key too
+#if defined(SPEAR) || defined(GOODTIMES)
 ////////////////////////////////////////////////////////////////////
 //
 // BOSS KEY
@@ -645,7 +644,6 @@ void BossKey(void)
 	VL_SetPalette (gamepal);
 	LoadLatchMem();
 }
-#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////
@@ -3951,12 +3949,34 @@ void CheckForEpisodes(void)
 
 #ifdef SPEAR
 #ifndef SPEARDEMO
-	if (!findfirst("*.SOD",&f,FA_ARCH))
+	//
+	// The two mission packs, Return to Danger and Ultimate Challenge, are
+	// the same game with their own maps, graphics and sounds in *.SD2 and
+	// *.SD3, numbered as the original's are. WOLF_MISSION picks one; the
+	// original, *.SOD, is mission 1 and the default.
+	//
 	{
-		strcpy(extension,"SOD");
+		const char	*mission = getenv("WOLF_MISSION");
+		const char	*ext = "SOD";
+		char		pattern[8];
+
+		if (mission && *mission == '2')
+			ext = "SD2";
+		else if (mission && *mission == '3')
+			ext = "SD3";
+
+		strcpy(pattern,"*.");
+		strcat(pattern,ext);
+		if (!findfirst(pattern,&f,FA_ARCH))
+			strcpy(extension,ext);
+		else if (ext[2] != 'D')
+			Quit("That Spear of Destiny mission pack is not among the data files.");
+		else if (!findfirst("*.SDM",&f,FA_ARCH))
+			Quit("These are the Spear of Destiny demo's files (*.SDM). This engine "
+				 "plays the full game; wolf3d-sdm plays the demo.");
+		else
+			Quit("NO SPEAR OF DESTINY DATA FILES TO BE FOUND!");
 	}
-	else
-		Quit("NO SPEAR OF DESTINY DATA FILES TO BE FOUND!");
 #else
 	if (!findfirst("*.SDM",&f,FA_ARCH))
 	{

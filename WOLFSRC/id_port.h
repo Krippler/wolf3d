@@ -71,6 +71,7 @@
 #define _fstricmp	strcasecmp
 #define stricmp		strcasecmp
 #define strnicmp	strncasecmp
+#define _fstrnicmp	strncasecmp
 #define farmalloc	malloc
 #define farfree		free
 

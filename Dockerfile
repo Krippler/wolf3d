@@ -28,11 +28,12 @@ RUN apt-get update \
 WORKDIR /src
 COPY WOLFSRC/ ./WOLFSRC/
 
-# wolf3d plays the registered game, wolf3d-wl1 the shareware episode: the
-# graphics' chunk numbers are compiled in and differ between them.
+# wolf3d plays the registered game, wolf3d-wl1 the shareware episode,
+# wolf3d-sod Spear of Destiny and its mission packs, wolf3d-sdm Spear's demo:
+# the chunk numbers are compiled in and differ between them all.
 RUN make -C WOLFSRC -j"$(nproc)" \
  && strip WOLFSRC/linux/wolf3d WOLFSRC/linux/wolf3d-wl1 \
- && test -x WOLFSRC/linux/wolf3d && test -x WOLFSRC/linux/wolf3d-wl1
+          WOLFSRC/linux/wolf3d-sod WOLFSRC/linux/wolf3d-sdm
 
 ##############################################################################
 # Runtime stage: the engines plus an X server, VNC and a web client.
@@ -68,6 +69,8 @@ RUN apt-get update \
 
 COPY --from=build /src/WOLFSRC/linux/wolf3d /usr/local/games/wolf3d
 COPY --from=build /src/WOLFSRC/linux/wolf3d-wl1 /usr/local/games/wolf3d-wl1
+COPY --from=build /src/WOLFSRC/linux/wolf3d-sod /usr/local/games/wolf3d-sod
+COPY --from=build /src/WOLFSRC/linux/wolf3d-sdm /usr/local/games/wolf3d-sdm
 COPY docker/entrypoint.sh /usr/local/bin/wolf-entrypoint
 
 # websockify, taught to carry the sound and the controller beside the picture
