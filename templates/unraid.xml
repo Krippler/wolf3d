@@ -35,6 +35,9 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.2.0
+- Every setting in one Settings menu (main menu, F4, F6 or F12): game, picture, sound devices and levels, every key, the mouse and its buttons.
+
 ### 1.1.0
 - Keys to strafe left and right (, and . by default), rebound under Settings - Keys.
 - New Game asks which game to play when there is more than one.
