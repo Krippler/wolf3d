@@ -1,0 +1,20 @@
+# docker compose up --build, then open http://localhost:6080/
+#
+# Put your own game's files (VSWAP.WL6 and the rest) in ./data to play the
+# full six episodes; with nothing there the shareware episode plays.
+services:
+  wolf3d:
+    build: .
+    image: ghcr.io/krippler/wolf3d:latest
+    ports:
+      - "6080:6080"
+    volumes:
+      - ./data:/data:ro
+      - wolf3d-state:/wolf/state
+    environment:
+      - PUID=1001
+      - PGID=1001
+    restart: unless-stopped
+
+volumes:
+  wolf3d-state:

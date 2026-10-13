@@ -1,26 +1,13 @@
 // ID_GLOB.H
 
 
-#include <ALLOC.H>
-#include <CTYPE.H>
-#include <DOS.H>
-#include <ERRNO.H>
-#include <FCNTL.H>
-#include <IO.H>
-#include <MEM.H>
-#include <PROCESS.H>
-#include <STDIO.H>
-#include <STDLIB.H>
-#include <STRING.H>
-#include <SYS\STAT.H>
-#include <VALUES.H>
-#include <DIR.H>
+#include "id_port.h"
 #define __ID_GLOB__
 #include "VERSION.H"
 
 //--------------------------------------------------------------------------
 
-extern	char		far signon;
+extern	byte		signon[];
 
 #define	introscn	signon
 
@@ -36,7 +23,11 @@ extern	char		far signon;
 
 #ifndef SPEAR
 
+#ifdef UPLOAD
+#include "GFXV_WL1.H"			// the shareware episode, version 1.4
+#else
 #include "GFXV_WL6.H"
+#endif
 #include "AUDIOWL6.H"
 #include "MAPSWL6.H"
 
@@ -67,8 +58,8 @@ extern	char		far signon;
 
 typedef	enum	{false,true}	boolean;
 typedef	unsigned	char		byte;
-typedef	unsigned	int			word;
-typedef	unsigned	long		longword;
+typedef	uint16_t			word;
+typedef	uint32_t		longword;
 typedef	byte *					Ptr;
 
 typedef	struct

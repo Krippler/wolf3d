@@ -2,7 +2,6 @@
 
 #include "WL_DEF.H"
 #pragma hdrstop
-#include <BIOS.H>
 
 /*
 =============================================================================
@@ -55,7 +54,7 @@ void DebugMemory (void)
 {
 	int	i;
 	char    scratch[80],str[10];
-	long	mem;
+	int32_t	mem;
 	spritetype _seg	*block;
 
 	CenterWindow (16,7);
@@ -136,18 +135,14 @@ void CountObjects (void)
 
 void PicturePause (void)
 {
-	int			i;
-	byte		p;
-	unsigned	x;
-	byte		far	*dest,far *src;
-	memptr		buffer;
+	unsigned	shown;
 
 	VW_ColorBorder (15);
 	FinishPaletteShifts ();
 
 	LastScan = 0;
 	while (!LastScan)
-	;
+		SYS_Spin ();
 	if (LastScan != sc_Enter)
 	{
 		VW_ColorBorder (0);
@@ -155,48 +150,23 @@ void PicturePause (void)
 	}
 
 	VW_ColorBorder (1);
-	VW_SetScreen (0,0);
+
 //
 // vga stuff...
 //
-
+// The original put the card back into mode 13h with the view in it, a
+// linear 320x200, for a screen grabber to take, waited for a key and quit.
+// Here the view stays where it is, in its own palette, until the key.
+//
+	shown = displayofs;
 	ClearMemory ();
 	CA_SetAllPurge();
-	MM_GetPtr (&buffer,64000);
-	for (p=0;p<4;p++)
-	{
-	   src = MK_FP(0xa000,displayofs);
-	   dest = (byte far *)buffer+p;
-	   VGAREADMAP(p);
-	   for (x=0;x<16000;x++,dest+=4)
-		   *dest = *src++;
-	}
-
-
-#if 0
-	for (p=0;p<4;p++)
-	{
-		src = MK_FP(0xa000,0);
-		dest = (byte far *)buffer+51200+p;
-		VGAREADMAP(p);
-		for (x=0;x<3200;x++,dest+=4)
-			*dest = *src++;
-	}
-#endif
-
-	asm	mov	ax,0x13
-	asm	int	0x10
-
-	dest = MK_FP(0xa000,0);
-	_fmemcpy (dest,buffer,64000);
-
-	VL_SetPalette (&gamepal);
-
-
-	IN_Shutdown ();
+	VW_SetScreen (shown,0);
+	VL_SetPalette (gamepal);
 
 	VW_WaitVBL(70);
-	bioskey(0);
+	IN_ClearKeysDown ();
+	IN_Ack ();
 	VW_WaitVBL(70);
 	Quit (NULL);
 }
@@ -268,7 +238,7 @@ static	char	buf[10];
 
 		US_Print("\n Address: ");
 		addr = PM_GetPageAddress(i);
-		sprintf(buf,"0x%04x",(word)addr);
+		sprintf(buf,"0x%04x",(word)(uintptr_t)addr);
 		US_Print(buf);
 
 		if (addr)
@@ -281,7 +251,8 @@ static	char	buf[10];
 				bufferofs += 32*SCREENWIDTH;
 				postx = 128;
 				postwidth = 1;
-				postsource = ((long)((unsigned)addr))<<16;
+				postpage = addr;
+				postsource = 0;
 				for (x=0;x<64;x++,postx++,postsource+=64)
 				{
 					wallheight[postx] = 256;
@@ -314,7 +285,7 @@ static	char	buf[10];
 			}
 			else
 			{
-				byte far *dp = (byte far *)MK_FP(addr,0);
+				byte far *dp = (byte far *)addr;
 				for (j = 0;j < NumDigi;j++)
 				{
 					k = (DigiList[(j * 2) + 1] + (PMPageSize - 1)) / PMPageSize;
@@ -639,7 +610,7 @@ void OverheadRefresh (void)
 				break;
 #endif
 			case actoratview:
-				tile = (unsigned)actorat[x][y];
+				tile = (uintptr_t)actorat[x][y];
 				break;
 			}
 

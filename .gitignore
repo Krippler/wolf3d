@@ -1,0 +1,21 @@
+# Build output
+WOLFSRC/linux/
+
+# Game data. Only the shareware episode, by name, may be committed: see
+# shareware/README.md. A registered game sitting in the working tree must
+# never be committed or baked into an image by accident.
+*.WL6
+*.wl6
+*.WL3
+*.wl3
+*.SOD
+*.sod
+*.SDM
+*.sdm
+*.WL1
+*.wl1
+!shareware/*.WL1
+
+# Savegames and settings written by a test run
+SAVEGAM?.*
+CONFIG.*

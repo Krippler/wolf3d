@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Wolfenstein 3-D
+Comment=id Software's Wolfenstein 3-D, from the 1995 source release
+Exec=wolf3d
+Icon=wolf3d
+Terminal=false
+Categories=Game;ActionGame;
+StartupWMClass=Wolf3d

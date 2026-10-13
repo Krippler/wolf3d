@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- Community Applications reads this for the repository's own card: who
+     maintains it, and where to go when something breaks. -->
+<CommunityApplications>
+  <Profile>
+    Wolfenstein 3-D, from the source id Software released in 1995, ported to
+    64-bit Linux and played in a browser. The container brings its own X
+    server and exports it over noVNC - nothing is needed on the host.
+
+    The AdLib music and effects and the Sound Blaster's voices come out of the
+    browser, over the same port as the picture, with nothing to set up. The
+    shareware episode is included, so it plays as soon as it starts; your own
+    copy of the game takes precedence when you add one. The registered game is
+    not included and comes from your own copy.
+
+    Issues and questions go to the GitHub tracker linked below.
+  </Profile>
+  <Icon>https://raw.githubusercontent.com/Krippler/wolf3d/master/templates/wolf3d-icon.png</Icon>
+  <WebPage>https://github.com/Krippler/wolf3d</WebPage>
+</CommunityApplications>

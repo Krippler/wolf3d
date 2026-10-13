@@ -28,7 +28,7 @@
 #define VIEWCOLOR	0x7f
 #define TEXTCOLOR	0x17
 #define HIGHLIGHT	0x13
-#define MenuFadeIn()	VL_FadeIn(0,255,&gamepal,10)
+#define MenuFadeIn()	VL_FadeIn(0,255,gamepal,10)
 
 
 #define MENUSONG	WONDERIN_MUS
@@ -64,7 +64,7 @@
 #define CTL_X	24
 #define CTL_Y	70
 #define CTL_W	284
-#define CTL_H	13*7-7
+#define CTL_H	13*8-7
 
 #define LSM_X	85
 #define LSM_Y	55
@@ -183,6 +183,7 @@ int  CP_EndGame(void);
 int  CP_CheckQuick(unsigned scancode);
 void CustomControls(void);
 void MouseSensitivity(void);
+void CP_Settings(int unused);
 
 void CheckForEpisodes(void);
 
@@ -219,7 +220,7 @@ enum
 //
 typedef struct {
 		int kill,secret,treasure;
-		long time;
+		int32_t time;
 		} LRstruct;
 
 extern LRstruct LevelRatios[];

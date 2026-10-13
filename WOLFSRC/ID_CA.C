@@ -32,16 +32,18 @@ loaded into the data segment
 
 typedef struct
 {
-  unsigned bit0,bit1;	// 0-255 is a character, > is a pointer to a node
+  word bit0,bit1;	// 0-255 is a character, > is a pointer to a node
 } huffnode;
 
 
+#pragma pack(push,1)
 typedef struct
 {
-	unsigned	RLEWtag;
-	long		headeroffsets[100];
+	word		RLEWtag;
+	int32_t		headeroffsets[100];
 	byte		tileinfo[];
 } mapfiletype;
+#pragma pack(pop)
 
 
 /*
@@ -55,7 +57,7 @@ typedef struct
 byte 		_seg	*tinf;
 int			mapon;
 
-unsigned	_seg	*mapsegs[MAPPLANES];
+word		_seg	*mapsegs[MAPPLANES];
 maptype		_seg	*mapheaderseg[NUMMAPS];
 byte		_seg	*audiosegs[NUMSNDCHUNKS];
 void		_seg	*grsegs[NUMCHUNKS];
@@ -75,8 +77,8 @@ char		audioname[13]="AUDIO.";
 =============================================================================
 */
 
-extern	long	far	CGAhead;
-extern	long	far	EGAhead;
+extern	int32_t	far	CGAhead;
+extern	int32_t	far	EGAhead;
 extern	byte	CGAdict;
 extern	byte	EGAdict;
 extern	byte	far	maphead;
@@ -96,8 +98,8 @@ char extension[5],	// Need a string, not constant to change cache files
 
 void CA_CannotOpen(char *string);
 
-long		_seg *grstarts;	// array of offsets in egagraph, -1 for sparse
-long		_seg *audiostarts;	// array of offsets in audio / audiot
+int32_t		_seg *grstarts;	// array of offsets in egagraph, -1 for sparse
+int32_t		_seg *audiostarts;	// array of offsets in audio / audiot
 
 #ifdef GRHEADERLINKED
 huffnode	*grhuffman;
@@ -116,27 +118,29 @@ int			grhandle;		// handle to EGAGRAPH
 int			maphandle;		// handle to MAPTEMP / GAMEMAPS
 int			audiohandle;	// handle to AUDIOT / AUDIO
 
-long		chunkcomplen,chunkexplen;
+int32_t		chunkcomplen,chunkexplen;
 
 SDMode		oldsoundmode;
 
 
 
-void	CAL_CarmackExpand (unsigned far *source, unsigned far *dest,
+void	CAL_CarmackExpand (word far *source, word far *dest,
 		unsigned length);
 
 
 #ifdef THREEBYTEGRSTARTS
 #define FILEPOSSIZE	3
 //#define	GRFILEPOS(c) (*(long far *)(((byte far *)grstarts)+(c)*3)&0xffffff)
-long GRFILEPOS(int c)
+int32_t GRFILEPOS(int c)
 {
-	long value;
+	int32_t value;
 	int	offset;
 
 	offset = c*3;
 
-	value = *(long far *)(((byte far *)grstarts)+offset);
+	value = ((byte far *)grstarts)[offset]
+		| ((byte far *)grstarts)[offset+1] << 8
+		| ((byte far *)grstarts)[offset+2] << 16;
 
 	value &= 0x00ffffffl;
 
@@ -205,33 +209,27 @@ void CAL_GetGrChunkLength (int chunk)
 =
 = CA_FarRead
 =
-= Read from a file to a far pointer
+= Read from a file to a far pointer. The original was a DOS call limited to
+= 64K at a time; this is read(), which may return short, so it loops.
 =
 ==========================
 */
 
-boolean CA_FarRead (int handle, byte far *dest, long length)
+boolean CA_FarRead (int handle, byte far *dest, int32_t length)
 {
-	if (length>0xffffl)
-		Quit ("CA_FarRead doesn't support 64K reads yet!");
+	while (length > 0)
+	{
+		ssize_t	got = read (handle,dest,length);
 
-asm		push	ds
-asm		mov	bx,[handle]
-asm		mov	cx,[WORD PTR length]
-asm		mov	dx,[WORD PTR dest]
-asm		mov	ds,[WORD PTR dest+2]
-asm		mov	ah,0x3f				// READ w/handle
-asm		int	21h
-asm		pop	ds
-asm		jnc	good
-	errno = _AX;
-	return	false;
-good:
-asm		cmp	ax,[WORD PTR length]
-asm		je	done
-	errno = EINVFMT;			// user manager knows this is bad read
-	return	false;
-done:
+		if (got <= 0)
+		{
+			if (got < 0 && errno == EINTR)
+				continue;
+			return	false;
+		}
+		dest += got;
+		length -= got;
+	}
 	return	true;
 }
 
@@ -239,36 +237,28 @@ done:
 /*
 ==========================
 =
-= CA_SegWrite
+= CA_FarWrite
 =
-= Write from a file to a far pointer
+= Write from a far pointer to a file
 =
 ==========================
 */
 
-boolean CA_FarWrite (int handle, byte far *source, long length)
+boolean CA_FarWrite (int handle, byte far *source, int32_t length)
 {
-	if (length>0xffffl)
-		Quit ("CA_FarWrite doesn't support 64K reads yet!");
+	while (length > 0)
+	{
+		ssize_t	put = write (handle,source,length);
 
-asm		push	ds
-asm		mov	bx,[handle]
-asm		mov	cx,[WORD PTR length]
-asm		mov	dx,[WORD PTR source]
-asm		mov	ds,[WORD PTR source+2]
-asm		mov	ah,0x40			// WRITE w/handle
-asm		int	21h
-asm		pop	ds
-asm		jnc	good
-	errno = _AX;
-	return	false;
-good:
-asm		cmp	ax,[WORD PTR length]
-asm		je	done
-	errno = ENOMEM;				// user manager knows this is bad write
-	return	false;
-
-done:
+		if (put <= 0)
+		{
+			if (put < 0 && errno == EINTR)
+				continue;
+			return	false;
+		}
+		source += put;
+		length -= put;
+	}
 	return	true;
 }
 
@@ -286,7 +276,7 @@ done:
 boolean CA_ReadFile (char *filename, memptr *ptr)
 {
 	int handle;
-	long size;
+	int32_t size;
 
 	if ((handle = open(filename,O_RDONLY | O_BINARY, S_IREAD)) == -1)
 		return false;
@@ -312,10 +302,10 @@ boolean CA_ReadFile (char *filename, memptr *ptr)
 ==========================
 */
 
-boolean CA_WriteFile (char *filename, void far *ptr, long length)
+boolean CA_WriteFile (char *filename, void far *ptr, int32_t length)
 {
 	int handle;
-	long size;
+	int32_t size;
 
 	handle = open(filename,O_CREAT | O_BINARY | O_WRONLY,
 				S_IREAD | S_IWRITE | S_IFREG);
@@ -347,7 +337,7 @@ boolean CA_WriteFile (char *filename, void far *ptr, long length)
 boolean CA_LoadFile (char *filename, memptr *ptr)
 {
 	int handle;
-	long size;
+	int32_t size;
 
 	if ((handle = open(filename,O_RDONLY | O_BINARY, S_IREAD)) == -1)
 		return false;
@@ -378,27 +368,16 @@ boolean CA_LoadFile (char *filename, memptr *ptr)
 =
 = CAL_OptimizeNodes
 =
-= Goes through a huffman table and changes the 256-511 node numbers to the
-= actular address of the node.  Must be called before CAL_HuffExpand
+= Turned node numbers 256-511 into the nodes' near addresses, so the
+= assembly expander could follow them without arithmetic. A pointer does
+= not fit in a word any more, so the numbers are left alone and
+= CAL_HuffExpand does the arithmetic instead.
 =
 ===============
 */
 
 void CAL_OptimizeNodes (huffnode *table)
 {
-  huffnode *node;
-  int i;
-
-  node = table;
-
-  for (i=0;i<255;i++)
-  {
-	if (node->bit0 >= 256)
-	  node->bit0 = (unsigned)(table+(node->bit0-256));
-	if (node->bit1 >= 256)
-	  node->bit1 = (unsigned)(table+(node->bit1-256));
-	node++;
-  }
 }
 
 
@@ -412,184 +391,69 @@ void CAL_OptimizeNodes (huffnode *table)
 = If screenhack, the data is decompressed in four planes directly
 = to the screen
 =
+= The tree's head node is allways node 254. Bits are taken from the low end
+= of each byte first.
+=
 ======================
 */
 
 void CAL_HuffExpand (byte huge *source, byte huge *dest,
-  long length,huffnode *hufftable, boolean screenhack)
+  int32_t length,huffnode *hufftable, boolean screenhack)
 {
-//  unsigned bit,byte,node,code;
-  unsigned sourceseg,sourceoff,destseg,destoff,endoff;
-  huffnode *headptr;
-  byte		mapmask;
-//  huffnode *nodeon;
+	huffnode	*headptr,*node;
+	byte		val,mask;
+	unsigned	code;
+	int32_t		planelength,i;
+	int			plane,planes;
+	unsigned	destaddr;
 
-  headptr = hufftable+254;	// head node is allways node 254
+	headptr = hufftable+254;	// head node is allways node 254
 
-  source++;	// normalize
-  source--;
-  dest++;
-  dest--;
-
-  if (screenhack)
-  {
-	mapmask = 1;
-asm	mov	dx,SC_INDEX
-asm	mov	ax,SC_MAPMASK + 256
-asm	out	dx,ax
-	length >>= 2;
-  }
-
-  sourceseg = FP_SEG(source);
-  sourceoff = FP_OFF(source);
-  destseg = FP_SEG(dest);
-  destoff = FP_OFF(dest);
-  endoff = destoff+length;
-
-//
-// ds:si source
-// es:di dest
-// ss:bx node pointer
-//
-
-	if (length <0xfff0)
+	if (screenhack)
 	{
-
-//--------------------------
-// expand less than 64k of data
-//--------------------------
-
-asm mov	bx,[headptr]
-
-asm	mov	si,[sourceoff]
-asm	mov	di,[destoff]
-asm	mov	es,[destseg]
-asm	mov	ds,[sourceseg]
-asm	mov	ax,[endoff]
-
-asm	mov	ch,[si]				// load first byte
-asm	inc	si
-asm	mov	cl,1
-
-expandshort:
-asm	test	ch,cl			// bit set?
-asm	jnz	bit1short
-asm	mov	dx,[ss:bx]			// take bit0 path from node
-asm	shl	cl,1				// advance to next bit position
-asm	jc	newbyteshort
-asm	jnc	sourceupshort
-
-bit1short:
-asm	mov	dx,[ss:bx+2]		// take bit1 path
-asm	shl	cl,1				// advance to next bit position
-asm	jnc	sourceupshort
-
-newbyteshort:
-asm	mov	ch,[si]				// load next byte
-asm	inc	si
-asm	mov	cl,1				// back to first bit
-
-sourceupshort:
-asm	or	dh,dh				// if dx<256 its a byte, else move node
-asm	jz	storebyteshort
-asm	mov	bx,dx				// next node = (huffnode *)code
-asm	jmp	expandshort
-
-storebyteshort:
-asm	mov	[es:di],dl
-asm	inc	di					// write a decopmpressed byte out
-asm	mov	bx,[headptr]		// back to the head node for next bit
-
-asm	cmp	di,ax				// done?
-asm	jne	expandshort
-
-//
-// perform screenhack if needed
-//
-asm	test	[screenhack],1
-asm	jz	notscreen
-asm	shl	[mapmask],1
-asm	mov	ah,[mapmask]
-asm	cmp	ah,16
-asm	je	notscreen			// all four planes done
-asm	mov	dx,SC_INDEX
-asm	mov	al,SC_MAPMASK
-asm	out	dx,ax
-asm	mov	di,[destoff]
-asm	mov	ax,[endoff]
-asm	jmp	expandshort
-
-notscreen:;
+		// dest is an address in video memory, and the data is the four
+		// planes one after the other
+		planes = 4;
+		planelength = length >> 2;
+		destaddr = (unsigned)(uintptr_t)dest;
 	}
 	else
 	{
-
-//--------------------------
-// expand more than 64k of data
-//--------------------------
-
-  length--;
-
-asm mov	bx,[headptr]
-asm	mov	cl,1
-
-asm	mov	si,[sourceoff]
-asm	mov	di,[destoff]
-asm	mov	es,[destseg]
-asm	mov	ds,[sourceseg]
-
-asm	lodsb			// load first byte
-
-expand:
-asm	test	al,cl		// bit set?
-asm	jnz	bit1
-asm	mov	dx,[ss:bx]	// take bit0 path from node
-asm	jmp	gotcode
-bit1:
-asm	mov	dx,[ss:bx+2]	// take bit1 path
-
-gotcode:
-asm	shl	cl,1		// advance to next bit position
-asm	jnc	sourceup
-asm	lodsb
-asm	cmp	si,0x10		// normalize ds:si
-asm  	jb	sinorm
-asm	mov	cx,ds
-asm	inc	cx
-asm	mov	ds,cx
-asm	xor	si,si
-sinorm:
-asm	mov	cl,1		// back to first bit
-
-sourceup:
-asm	or	dh,dh		// if dx<256 its a byte, else move node
-asm	jz	storebyte
-asm	mov	bx,dx		// next node = (huffnode *)code
-asm	jmp	expand
-
-storebyte:
-asm	mov	[es:di],dl
-asm	inc	di		// write a decopmpressed byte out
-asm	mov	bx,[headptr]	// back to the head node for next bit
-
-asm	cmp	di,0x10		// normalize es:di
-asm  	jb	dinorm
-asm	mov	dx,es
-asm	inc	dx
-asm	mov	es,dx
-asm	xor	di,di
-dinorm:
-
-asm	sub	[WORD PTR ss:length],1
-asm	jnc	expand
-asm  	dec	[WORD PTR ss:length+2]
-asm	jns	expand		// when length = ffff ffff, done
-
+		planes = 1;
+		planelength = length;
+		destaddr = 0;
 	}
 
-asm	mov	ax,ss
-asm	mov	ds,ax
+	node = headptr;
+	val = *source++;
+	mask = 1;
 
+	for (plane = 0;plane < planes;plane++)
+	{
+		for (i = 0;i < planelength;)
+		{
+			code = (val & mask) ? node->bit1 : node->bit0;
+
+			mask <<= 1;
+			if (!mask)
+			{
+				val = *source++;
+				mask = 1;
+			}
+
+			if (code < 256)
+			{
+				if (screenhack)
+					VGA_Ptr (destaddr + i)[plane] = (byte)code;
+				else
+					*dest++ = (byte)code;
+				i++;
+				node = headptr;
+			}
+			else
+				node = hufftable + (code - 256);
+		}
+	}
 }
 
 
@@ -600,38 +464,44 @@ asm	mov	ds,ax
 =
 = Length is the length of the EXPANDED data
 =
+= Words with a high byte of NEARTAG copy count words from offset words
+= back; FARTAG from offset words into the output. Either with a count of
+= zero is the tag byte itself, the low byte coming next.
+=
 ======================
 */
 
 #define NEARTAG	0xa7
 #define FARTAG	0xa8
 
-void CAL_CarmackExpand (unsigned far *source, unsigned far *dest, unsigned length)
+void CAL_CarmackExpand (word far *source, word far *dest, unsigned length)
 {
 	unsigned	ch,chhigh,count,offset;
-	unsigned	far *copyptr, far *inptr, far *outptr;
+	word		far *copyptr, far *outptr;
+	byte		far *inptr;
 
 	length/=2;
 
-	inptr = source;
+	inptr = (byte far *)source;
 	outptr = dest;
 
 	while (length)
 	{
-		ch = *inptr++;
+		ch = inptr[0] | (inptr[1] << 8);
+		inptr += 2;
 		chhigh = ch>>8;
 		if (chhigh == NEARTAG)
 		{
 			count = ch&0xff;
 			if (!count)
 			{				// have to insert a word containing the tag byte
-				ch |= *((unsigned char far *)inptr)++;
+				ch |= *inptr++;
 				*outptr++ = ch;
 				length--;
 			}
 			else
 			{
-				offset = *((unsigned char far *)inptr)++;
+				offset = *inptr++;
 				copyptr = outptr - offset;
 				length -= count;
 				while (count--)
@@ -643,13 +513,14 @@ void CAL_CarmackExpand (unsigned far *source, unsigned far *dest, unsigned lengt
 			count = ch&0xff;
 			if (!count)
 			{				// have to insert a word containing the tag byte
-				ch |= *((unsigned char far *)inptr)++;
+				ch |= *inptr++;
 				*outptr++ = ch;
 				length --;
 			}
 			else
 			{
-				offset = *inptr++;
+				offset = inptr[0] | (inptr[1] << 8);
+				inptr += 2;
 				copyptr = dest + offset;
 				length -= count;
 				while (count--)
@@ -674,12 +545,12 @@ void CAL_CarmackExpand (unsigned far *source, unsigned far *dest, unsigned lengt
 ======================
 */
 
-long CA_RLEWCompress (unsigned huge *source, long length, unsigned huge *dest,
-  unsigned rlewtag)
+int32_t CA_RLEWCompress (word huge *source, int32_t length, word huge *dest,
+  word rlewtag)
 {
-  long complength;
-  unsigned value,count,i;
-  unsigned huge *start,huge *end;
+  int32_t complength;
+  word value,count,i;
+  word huge *start,huge *end;
 
   start = dest;
 
@@ -731,18 +602,17 @@ long CA_RLEWCompress (unsigned huge *source, long length, unsigned huge *dest,
 ======================
 */
 
-void CA_RLEWexpand (unsigned huge *source, unsigned huge *dest,long length,
-  unsigned rlewtag)
+void CA_RLEWexpand (word huge *source, word huge *dest,int32_t length,
+  word rlewtag)
 {
-//  unsigned value,count,i;
-  unsigned huge *end;
-  unsigned sourceseg,sourceoff,destseg,destoff,endseg,endoff;
+  word value,count,i;
+  word huge *end;
 
+  end = dest + (length)/2;
 
 //
 // expand it
 //
-#if 0
   do
   {
 	value = *source++;
@@ -758,85 +628,10 @@ void CA_RLEWexpand (unsigned huge *source, unsigned huge *dest,long length,
 	//
 	  count = *source++;
 	  value = *source++;
-	  for (i=1;i<=count;i++)
+	  for (i=1;i<=count && dest<end;i++)
 	*dest++ = value;
 	}
   } while (dest<end);
-#endif
-
-  end = dest + (length)/2;
-  sourceseg = FP_SEG(source);
-  sourceoff = FP_OFF(source);
-  destseg = FP_SEG(dest);
-  destoff = FP_OFF(dest);
-  endseg = FP_SEG(end);
-  endoff = FP_OFF(end);
-
-
-//
-// ax = source value
-// bx = tag value
-// cx = repeat counts
-// dx = scratch
-//
-// NOTE: A repeat count that produces 0xfff0 bytes can blow this!
-//
-
-asm	mov	bx,rlewtag
-asm	mov	si,sourceoff
-asm	mov	di,destoff
-asm	mov	es,destseg
-asm	mov	ds,sourceseg
-
-expand:
-asm	lodsw
-asm	cmp	ax,bx
-asm	je	repeat
-asm	stosw
-asm	jmp	next
-
-repeat:
-asm	lodsw
-asm	mov	cx,ax		// repeat count
-asm	lodsw			// repeat value
-asm	rep stosw
-
-next:
-
-asm	cmp	si,0x10		// normalize ds:si
-asm  	jb	sinorm
-asm	mov	ax,si
-asm	shr	ax,1
-asm	shr	ax,1
-asm	shr	ax,1
-asm	shr	ax,1
-asm	mov	dx,ds
-asm	add	dx,ax
-asm	mov	ds,dx
-asm	and	si,0xf
-sinorm:
-asm	cmp	di,0x10		// normalize es:di
-asm  	jb	dinorm
-asm	mov	ax,di
-asm	shr	ax,1
-asm	shr	ax,1
-asm	shr	ax,1
-asm	shr	ax,1
-asm	mov	dx,es
-asm	add	dx,ax
-asm	mov	es,dx
-asm	and	di,0xf
-dinorm:
-
-asm	cmp     di,ss:endoff
-asm	jne	expand
-asm	mov	ax,es
-asm	cmp	ax,ss:endseg
-asm	jb	expand
-
-asm	mov	ax,ss
-asm	mov	ds,ax
-
 }
 
 
@@ -867,7 +662,7 @@ void CAL_SetupGrFile (void)
 #ifdef GRHEADERLINKED
 
 	grhuffman = (huffnode *)&EGAdict;
-	grstarts = (long _seg *)FP_SEG(&EGAhead);
+	grstarts = (int32_t _seg *)FP_SEG(&EGAhead);
 
 	CAL_OptimizeNodes (grhuffman);
 
@@ -890,7 +685,7 @@ void CAL_SetupGrFile (void)
 //
 // load the data offsets from ???head.ext
 //
-	MM_GetPtr (&(memptr)grstarts,(NUMCHUNKS+1)*FILEPOSSIZE);
+	MM_GetPtr ((memptr *)&grstarts,(NUMCHUNKS+1)*FILEPOSSIZE+1);
 
 	strcpy(fname,gheadname);
 	strcat(fname,extension);
@@ -898,6 +693,22 @@ void CAL_SetupGrFile (void)
 	if ((handle = open(fname,
 		 O_RDONLY | O_BINARY, S_IREAD)) == -1)
 		CA_CannotOpen(fname);
+
+	//
+	// The chunk numbers are compiled in, and differ between versions of the
+	// data. The header's length says how many chunks there are: if it is
+	// not the number this build expects, every picture would be the wrong
+	// one, so say so instead.
+	//
+	if (filelength(handle) != (NUMCHUNKS+1)*FILEPOSSIZE)
+	{
+		static char	msg[200];
+
+		snprintf(msg,sizeof(msg),"%s has %d graphics chunks, and this engine "
+			"was built for %d: the data is from a version it does not play.",
+			fname,(int)(filelength(handle)/FILEPOSSIZE)-1,NUMCHUNKS);
+		Quit(msg);
+	}
 
 	CA_FarRead(handle, (memptr)grstarts, (NUMCHUNKS+1)*FILEPOSSIZE);
 
@@ -920,7 +731,7 @@ void CAL_SetupGrFile (void)
 //
 // load the pic and sprite headers into the arrays in the data segment
 //
-	MM_GetPtr(&(memptr)pictable,NUMPICS*sizeof(pictabletype));
+	MM_GetPtr((memptr *)&pictable,NUMPICS*sizeof(pictabletype));
 	CAL_GetGrChunkLength(STRUCTPIC);		// position file pointer
 	MM_GetPtr(&compseg,chunkcomplen);
 	CA_FarRead (grhandle,compseg,chunkcomplen);
@@ -943,7 +754,7 @@ void CAL_SetupMapFile (void)
 {
 	int	i;
 	int handle;
-	long length,pos;
+	int32_t length,pos;
 	char fname[13];
 
 //
@@ -958,7 +769,7 @@ void CAL_SetupMapFile (void)
 		CA_CannotOpen(fname);
 
 	length = filelength(handle);
-	MM_GetPtr (&(memptr)tinf,length);
+	MM_GetPtr ((memptr *)&tinf,length);
 	CA_FarRead(handle, tinf, length);
 	close(handle);
 #else
@@ -995,8 +806,8 @@ void CAL_SetupMapFile (void)
 		if (pos<0)						// $FFFFFFFF start is a sparse map
 			continue;
 
-		MM_GetPtr(&(memptr)mapheaderseg[i],sizeof(maptype));
-		MM_SetLock(&(memptr)mapheaderseg[i],true);
+		MM_GetPtr((memptr *)&mapheaderseg[i],sizeof(maptype));
+		MM_SetLock((memptr *)&mapheaderseg[i],true);
 		lseek(maphandle,pos,SEEK_SET);
 		CA_FarRead (maphandle,(memptr)mapheaderseg[i],sizeof(maptype));
 	}
@@ -1006,8 +817,8 @@ void CAL_SetupMapFile (void)
 //
 	for (i=0;i<MAPPLANES;i++)
 	{
-		MM_GetPtr (&(memptr)mapsegs[i],64*64*2);
-		MM_SetLock (&(memptr)mapsegs[i],true);
+		MM_GetPtr ((memptr *)&mapsegs[i],64*64*2);
+		MM_SetLock ((memptr *)&mapsegs[i],true);
 	}
 }
 
@@ -1026,7 +837,7 @@ void CAL_SetupMapFile (void)
 void CAL_SetupAudioFile (void)
 {
 	int handle;
-	long length;
+	int32_t length;
 	char fname[13];
 
 //
@@ -1041,13 +852,13 @@ void CAL_SetupAudioFile (void)
 		CA_CannotOpen(fname);
 
 	length = filelength(handle);
-	MM_GetPtr (&(memptr)audiostarts,length);
+	MM_GetPtr ((memptr *)&audiostarts,length);
 	CA_FarRead(handle, (byte far *)audiostarts, length);
 	close(handle);
 #else
 	audiohuffman = (huffnode *)&audiodict;
 	CAL_OptimizeNodes (audiohuffman);
-	audiostarts = (long _seg *)FP_SEG(&audiohead);
+	audiostarts = (int32_t _seg *)FP_SEG(&audiohead);
 #endif
 
 //
@@ -1133,16 +944,16 @@ void CA_Shutdown (void)
 
 void CA_CacheAudioChunk (int chunk)
 {
-	long	pos,compressed;
+	int32_t	pos,compressed;
 #ifdef AUDIOHEADERLINKED
-	long	expanded;
+	int32_t	expanded;
 	memptr	bigbufferseg;
 	byte	far *source;
 #endif
 
 	if (audiosegs[chunk])
 	{
-		MM_SetPurge (&(memptr)audiosegs[chunk],0);
+		MM_SetPurge ((memptr *)&audiosegs[chunk],0);
 		return;							// allready in memory
 	}
 
@@ -1157,7 +968,7 @@ void CA_CacheAudioChunk (int chunk)
 
 #ifndef AUDIOHEADERLINKED
 
-	MM_GetPtr (&(memptr)audiosegs[chunk],compressed);
+	MM_GetPtr ((memptr *)&audiosegs[chunk],compressed);
 	if (mmerror)
 		return;
 
@@ -1180,9 +991,9 @@ void CA_CacheAudioChunk (int chunk)
 		source = bigbufferseg;
 	}
 
-	expanded = *(long far *)source;
+	expanded = *(int32_t far *)source;
 	source += 4;			// skip over length
-	MM_GetPtr (&(memptr)audiosegs[chunk],expanded);
+	MM_GetPtr ((memptr *)&audiosegs[chunk],expanded);
 	if (mmerror)
 		goto done;
 	CAL_HuffExpand (source,audiosegs[chunk],expanded,audiohuffman,false);
@@ -1223,7 +1034,7 @@ void CA_LoadAllSounds (void)
 
 	for (i=0;i<NUMSOUNDS;i++,start++)
 		if (audiosegs[start])
-			MM_SetPurge (&(memptr)audiosegs[start],3);		// make purgable
+			MM_SetPurge ((memptr *)&audiosegs[start],3);		// make purgable
 
 cachein:
 
@@ -1260,7 +1071,7 @@ cachein:
 
 void CAL_ExpandGrChunk (int chunk, byte far *source)
 {
-	long	expanded;
+	int32_t	expanded;
 
 
 	if (chunk >= STARTTILE8 && chunk < STARTEXTERNS)
@@ -1290,7 +1101,7 @@ void CAL_ExpandGrChunk (int chunk, byte far *source)
 	//
 	// everything else has an explicit size longword
 	//
-		expanded = *(long far *)source;
+		expanded = *(int32_t far *)source;
 		source += 4;			// skip over length
 	}
 
@@ -1317,7 +1128,7 @@ void CAL_ExpandGrChunk (int chunk, byte far *source)
 
 void CA_CacheGrChunk (int chunk)
 {
-	long	pos,compressed;
+	int32_t	pos,compressed;
 	memptr	bigbufferseg;
 	byte	far *source;
 	int		next;
@@ -1380,7 +1191,7 @@ void CA_CacheGrChunk (int chunk)
 
 void CA_CacheScreen (int chunk)
 {
-	long	pos,compressed,expanded;
+	int32_t	pos,compressed,expanded;
 	memptr	bigbufferseg;
 	byte	far *source;
 	int		next;
@@ -1401,14 +1212,14 @@ void CA_CacheScreen (int chunk)
 	CA_FarRead(grhandle,bigbufferseg,compressed);
 	source = bigbufferseg;
 
-	expanded = *(long far *)source;
+	expanded = *(int32_t far *)source;
 	source += 4;			// skip over length
 
 //
 // allocate final space, decompress it, and free bigbuffer
 // Sprites need to have shifts made and various other junk
 //
-	CAL_HuffExpand (source,MK_FP(SCREENSEG,bufferofs),expanded,grhuffman,true);
+	CAL_HuffExpand (source,(byte *)(uintptr_t)bufferofs,expanded,grhuffman,true);
 	VW_MarkUpdateBlock (0,0,319,199);
 	MM_FreePtr(&bigbufferseg);
 }
@@ -1427,14 +1238,14 @@ void CA_CacheScreen (int chunk)
 
 void CA_CacheMap (int mapnum)
 {
-	long	pos,compressed;
+	int32_t	pos,compressed;
 	int		plane;
 	memptr	*dest,bigbufferseg;
 	unsigned	size;
-	unsigned	far	*source;
+	word	far	*source;
 #ifdef CARMACIZED
 	memptr	buffer2seg;
-	long	expanded;
+	int32_t	expanded;
 #endif
 
 	mapon = mapnum;
@@ -1449,7 +1260,7 @@ void CA_CacheMap (int mapnum)
 		pos = mapheaderseg[mapnum]->planestart[plane];
 		compressed = mapheaderseg[mapnum]->planelength[plane];
 
-		dest = &(memptr)mapsegs[plane];
+		dest = (memptr *)&mapsegs[plane];
 
 		lseek(maphandle,pos,SEEK_SET);
 		if (compressed<=BUFFERSIZE)
@@ -1472,8 +1283,8 @@ void CA_CacheMap (int mapnum)
 		expanded = *source;
 		source++;
 		MM_GetPtr (&buffer2seg,expanded);
-		CAL_CarmackExpand (source, (unsigned far *)buffer2seg,expanded);
-		CA_RLEWexpand (((unsigned far *)buffer2seg)+1,*dest,size,
+		CAL_CarmackExpand (source, (word far *)buffer2seg,expanded);
+		CA_RLEWexpand (((word far *)buffer2seg)+1,*dest,size,
 		((mapfiletype _seg *)tinf)->RLEWtag);
 		MM_FreePtr (&buffer2seg);
 
@@ -1512,7 +1323,7 @@ void CA_UpLevel (void)
 
 	for (i=0;i<NUMCHUNKS;i++)
 		if (grsegs[i])
-			MM_SetPurge (&(memptr)grsegs[i],3);
+			MM_SetPurge ((memptr *)&grsegs[i],3);
 	ca_levelbit<<=1;
 	ca_levelnum++;
 }
@@ -1603,7 +1414,7 @@ void CA_SetGrPurge (void)
 
 	for (i=0;i<NUMCHUNKS;i++)
 		if (grsegs[i])
-			MM_SetPurge (&(memptr)grsegs[i],3);
+			MM_SetPurge ((memptr *)&grsegs[i],3);
 }
 
 
@@ -1628,7 +1439,7 @@ void CA_SetAllPurge (void)
 //
 	for (i=0;i<NUMSNDCHUNKS;i++)
 		if (audiosegs[i])
-			MM_SetPurge (&(memptr)audiosegs[i],3);
+			MM_SetPurge ((memptr *)&audiosegs[i],3);
 
 //
 // free graphics
@@ -1651,8 +1462,8 @@ void CA_SetAllPurge (void)
 void CA_CacheMarks (void)
 {
 	int 	i,next,numcache;
-	long	pos,endpos,nextpos,nextendpos,compressed;
-	long	bufferstart,bufferend;	// file position of general buffer
+	int32_t	pos,endpos,nextpos,nextendpos,compressed;
+	int32_t	bufferstart,bufferend;	// file position of general buffer
 	byte	far *source;
 	memptr	bigbufferseg;
 

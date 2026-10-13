@@ -67,7 +67,8 @@ void EndSpear(void)
 	VW_UpdateScreen ();
 	IN_StartAck ();
 	TimeCount = 0;
-	while (!IN_CheckAck () && TimeCount < 700);
+	while (!IN_CheckAck () && TimeCount < 700)
+		SYS_Spin ();
 
 	PrintX = 0;
 	PrintY = 180;
@@ -77,7 +78,8 @@ void EndSpear(void)
 	VW_UpdateScreen ();
 	IN_StartAck ();
 	TimeCount = 0;
-	while (!IN_CheckAck () && TimeCount < 700);
+	while (!IN_CheckAck () && TimeCount < 700)
+		SYS_Spin ();
 
 	VW_FadeOut ();
 
@@ -108,7 +110,7 @@ void EndSpear(void)
 void Victory (void)
 {
 #ifndef SPEARDEMO
-	long	sec;
+	int32_t	sec;
 	int i,min,kr,sr,tr,x;
 	char tempstr[8];
 
@@ -439,7 +441,7 @@ void LevelCompleted (void)
 	int	x,i,min,sec,ratio,kr,sr,tr;
 	unsigned	temp;
 	char tempstr[10];
-	long bonus,timeleft=0;
+	int32_t bonus,timeleft=0;
 	times parTimes[]=
 	{
 #ifndef SPEAR
@@ -665,7 +667,7 @@ void LevelCompleted (void)
 	 {
 	  for (i=0;i<=timeleft;i++)
 	  {
-	   ltoa((long)i*PAR_AMOUNT,tempstr,10);
+	   ltoa((int32_t)i*PAR_AMOUNT,tempstr,10);
 	   x=36-strlen(tempstr)*2;
 	   Write(x,7,tempstr);
 	   if (!(i%(PAR_AMOUNT/10)))
@@ -836,7 +838,7 @@ void LevelCompleted (void)
 	 x=RATIOXX-strlen(tempstr)*2;
 	 Write(x,18,tempstr);
 
-	 bonus=(long)timeleft*PAR_AMOUNT+
+	 bonus=(int32_t)timeleft*PAR_AMOUNT+
 		   (PERCENT100AMT*(kr==100))+
 		   (PERCENT100AMT*(sr==100))+
 		   (PERCENT100AMT*(tr==100));
@@ -969,13 +971,13 @@ void LevelCompleted (void)
 =================
 */
 
-boolean PreloadUpdate(unsigned current, unsigned total)
+boolean PreloadUpdate(word current, word total)
 {
 	unsigned w = WindowW - 10;
 
 
 	VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w,2,BLACK);
-	w = ((long)w * current) / total;
+	w = ((int32_t)w * current) / total;
 	if (w)
 	{
 	 VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w,2,0x37); //SECONDCOLOR);
@@ -1192,7 +1194,7 @@ void	DrawHighScores(void)
 =======================
 */
 
-void	CheckHighScore (long score,word other)
+void	CheckHighScore (int32_t score,word other)
 {
 	word		i,j;
 	int			n;
@@ -1705,9 +1707,6 @@ void CopyProtection(void)
 	ShutdownId();
 
 	_fstrcpy(message,DosMessages[US_RndT()%9]);
-
-	_AX = 3;
-	geninterrupt(0x10);
 
 	printf("%s\n",message);
 	exit(1);

@@ -26,6 +26,9 @@ typedef	enum	{
 typedef	enum	{
 					sds_Off,sds_PC,sds_SoundSource,sds_SoundBlaster
 				}	SDSMode;
+// The sound structures are read straight out of AUDIOT, unpadded.
+#pragma pack(push,1)
+
 typedef	struct
 		{
 			longword	length;
@@ -132,6 +135,8 @@ typedef	struct
 						data[1];
 		} AdLibSound;
 
+#pragma pack(pop)
+
 //
 //	Sequencing stuff
 //
@@ -197,7 +202,7 @@ extern	SDSMode		DigiMode;
 extern	SMMode		MusicMode;
 extern	boolean		DigiPlaying;
 extern	int			DigiMap[];
-extern	longword	TimeCount;					// Global time in ticks
+extern	volatile longword	TimeCount;			// Global time in ticks
 
 // Function prototypes
 extern	void	SD_Startup(void),
@@ -221,6 +226,7 @@ extern	boolean	SD_MusicPlaying(void),
 				SD_SetMusicMode(SMMode mode);
 extern	word	SD_SoundPlaying(void);
 
+extern	void	SD_Mix(int16_t *out,int frames);
 extern	void	SD_SetDigiDevice(SDSMode),
 				SD_PlayDigitized(word which,int leftpos,int rightpos),
 				SD_StopDigitized(void),

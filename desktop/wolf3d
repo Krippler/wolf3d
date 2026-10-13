@@ -1,0 +1,149 @@
+#!/bin/sh
+#
+# wolf3d [--data DIR] [game options]
+#
+# Starts Wolfenstein 3-D. Finds a copy of the game -- one given with --data
+# or WOLF_DATA, the last one used, a Steam or GOG install -- and plays the
+# shareware episode that came with this if there is none. Spear of Destiny,
+# its mission packs and its demo are played too. Savegames and
+# settings go in ~/.local/share/wolf3d. Anything else on the command line
+# goes to the game: -nowait skips the opening screens.
+#
+
+set -u
+
+here=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+lib="${WOLF_LIB:-$here/../lib/wolf3d}"
+shareware="$lib/shareware"
+state="${XDG_DATA_HOME:-$HOME/.local/share}/wolf3d"
+remembered="$state/.data"
+
+say() { printf 'wolf3d: %s\n' "$*" >&2; }
+
+# From a menu there is no terminal to read an error in, so show it
+complain() {
+    say "$*"
+    [ -t 2 ] && return 0
+    if command -v zenity >/dev/null 2>&1; then
+        zenity --error --title="Wolfenstein 3-D" --text="$*" 2>/dev/null
+    elif command -v kdialog >/dev/null 2>&1; then
+        kdialog --title "Wolfenstein 3-D" --error "$*" 2>/dev/null
+    elif command -v xmessage >/dev/null 2>&1; then
+        xmessage -center "$*" 2>/dev/null
+    fi
+}
+
+data=""
+case "${1:-}" in
+    --data)
+        [ $# -ge 2 ] || { say "--data needs a directory"; exit 2; }
+        data="$2"
+        shift 2
+        ;;
+    --data=*)
+        data="${1#--data=}"
+        shift
+        ;;
+    -h|--help)
+        sed -n '3,10p' "$0" | sed 's/^# \{0,1\}//'
+        exit 0
+        ;;
+esac
+
+# The games in a directory, by their VSWAPs, in any case: wl6 (or wl3), sod,
+# sd2, sd3, wl1, sdm, in that order of preference
+kinds() {
+    [ -d "$1" ] || return 1
+    found=""
+    for ext in wl6 sod sd2 sd3 wl1 sdm; do
+        if find -L "$1" -maxdepth 1 -type f -iname "vswap.$ext" 2>/dev/null | grep -q . \
+           || { [ "$ext" = wl6 ] && find -L "$1" -maxdepth 1 -type f -iname "vswap.wl3" 2>/dev/null | grep -q .; }; then
+            found="$found $ext"
+        fi
+    done
+    [ -n "$found" ] || return 1
+    echo "${found# }"
+}
+
+mkdir -p "$state" || { complain "Cannot create $state"; exit 1; }
+
+dir=""
+if [ -n "$data" ]; then
+    kinds "$data" >/dev/null || {
+        complain "No game data in $data. Point --data at the directory that holds
+VSWAP.WL6 (or .WL1, .SOD, .SDM) and the files beside it."
+        exit 1
+    }
+    dir="$data"
+elif [ -n "${WOLF_DATA:-}" ] && kinds "$WOLF_DATA" >/dev/null; then
+    dir="$WOLF_DATA"
+fi
+
+[ -z "$dir" ] && [ -f "$remembered" ] && dir=$(cat "$remembered") \
+    && ! kinds "$dir" >/dev/null && dir=""
+
+if [ -z "$dir" ]; then
+    for d in \
+        "$HOME/.local/share/Steam/steamapps/common/Wolfenstein 3D/base" \
+        "$HOME/.steam/steam/steamapps/common/Wolfenstein 3D/base" \
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/Wolfenstein 3D/base" \
+        "$HOME/.local/share/Steam/steamapps/common/Spear of Destiny/base" \
+        "$HOME/.steam/steam/steamapps/common/Spear of Destiny/base" \
+        "$HOME/GOG Games/Wolfenstein 3D" "$HOME/GOG Games/Wolfenstein 3D/data" \
+        "$HOME/GOG Games/Spear of Destiny" \
+        "$HOME/Games/wolf3d" "$HOME/.wolf3d" \
+        "/usr/share/games/wolf3d" "/usr/share/wolf3d"
+    do
+        kinds "$d" >/dev/null && { dir="$d"; break; }
+    done
+fi
+
+[ -n "$data" ] && printf '%s\n' "$dir" > "$remembered"
+
+# Every game there is, the shareware always among them
+games=""
+[ -n "$dir" ] && games=$(kinds "$dir")
+case " $games " in
+    *" wl1 "*) ;;
+    *) [ -d "$shareware" ] && games="${games:+$games }wl1" ;;
+esac
+[ -n "$games" ] || { complain "No game data found, and the shareware that came with
+this is missing from $shareware. Reinstall, or use --data DIR."; exit 1; }
+
+cd "$state" || exit 1
+
+#
+# Play the one chosen in the game's Settings last time, or the first there
+# is. Choosing another there ends the engine with status 3, and this starts
+# the one that plays it.
+#
+while :; do
+    want="${WOLF_GAME:-}"
+    [ -z "$want" ] && [ -f "$state/game" ] && want=$(cat "$state/game")
+    case " $games " in
+        *" $want "*) game="$want" ;;
+        *) game="${games%% *}" ;;
+    esac
+
+    unset WOLF_MISSION
+    case "$game" in
+        wl6) engine="$lib/wolf3d" ;;
+        wl1) engine="$lib/wolf3d-wl1" ;;
+        sod) engine="$lib/wolf3d-sod" ;;
+        sd2) engine="$lib/wolf3d-sod"; export WOLF_MISSION=2 ;;
+        sd3) engine="$lib/wolf3d-sod"; export WOLF_MISSION=3 ;;
+        sdm) engine="$lib/wolf3d-sdm" ;;
+    esac
+    gamedir="$dir"
+    if [ "$game" = wl1 ] && ! kinds "$dir" 2>/dev/null | grep -qw wl1; then
+        gamedir="$shareware"
+    fi
+
+    [ -x "$engine" ] || { complain "The engine is not at $engine. Reinstall."; exit 1; }
+
+    say "playing $game from $gamedir"
+    status=0
+    WOLF_DATA="$gamedir" WOLF_GAMES="$games" WOLF_GAME_NOW="$game" "$engine" "$@" || status=$?
+    [ "$status" = 3 ] || exit "$status"
+    WOLF_GAME=""
+done

@@ -52,7 +52,7 @@ typedef	byte		ScanCode;
 #define	sc_F9			0x43
 #define	sc_F10			0x44
 #define	sc_F11			0x57
-#define	sc_F12			0x59
+#define	sc_F12			0x58
 
 #define	sc_1			0x02
 #define	sc_2			0x03
@@ -106,8 +106,6 @@ typedef	byte		ScanCode;
 #define	MButtons	3
 #define	MDelta		11
 
-#define	MouseInt	0x33
-#define	Mouse(x)	_AX = x,geninterrupt(MouseInt)
 
 typedef	enum		{
 						demo_Off,demo_Record,demo_Playback,demo_PlayDone
@@ -153,12 +151,14 @@ typedef	struct		{
 									joyMultXH,joyMultYH;
 					} JoystickDef;
 // Global variables
-extern	boolean		Keyboard[],
-					MousePresent,
+// Written by the keyboard "interrupt" on another thread, as they were by
+// the real one, so volatile: loops wait on them changing.
+extern	volatile boolean	Keyboard[];
+extern	boolean		MousePresent,
 					JoysPresent[];
-extern	boolean		Paused;
-extern	char		LastASCII;
-extern	ScanCode	LastScan;
+extern	volatile boolean	Paused;
+extern	volatile char		LastASCII;
+extern	volatile ScanCode	LastScan;
 extern	KeyboardDef	KbdDefs;
 extern	JoystickDef	JoyDefs[];
 extern	ControlType	Controls[MaxPlayers];
@@ -196,6 +196,12 @@ byte	IN_MouseButtons (void);
 byte	IN_JoyButtons (void);
 
 void INL_GetJoyDelta(word joy,int *dx,int *dy);
+void INL_KeyService(byte k);
+
+// INT 33h, the mouse driver: functions 3, 4 and 11
+void IN_MouseGetPos(int *x,int *y);
+void IN_MouseSetPos(int x,int y);
+void IN_MouseMickeys(int *dx,int *dy);
 void IN_StartAck(void);
 boolean IN_CheckAck (void);
 

@@ -31,16 +31,17 @@ typedef	struct
 	byte		data[];
 } spritetype;		// the memptr for each sprite points to this
 
+// These two are read straight out of VGAGRAPH, where an int is 16 bits.
 typedef struct
 {
-	int width,height;
+	int16_t width,height;
 } pictabletype;
 
 
 typedef struct
 {
-	int height;
-	int location[256];
+	int16_t height;
+	int16_t location[256];
 	char width[256];
 } fontstruct;
 
@@ -79,6 +80,7 @@ void VWB_DrawMPic(int x, int y, int chunknum);
 void VWB_Bar (int x, int y, int width, int height, int color);
 
 void VWB_DrawPropString	 (char far *string);
+void VH_UpdateScreen (void);
 void VWB_DrawMPropString (char far *string);
 void VWB_DrawSprite (int x, int y, int chunknum);
 void VWB_Plot (int x, int y, int color);
@@ -89,7 +91,7 @@ void VWB_Vlin (int y1, int y2, int x, int color);
 //
 // wolfenstein EGA compatability stuff
 //
-extern byte far gamepal;
+extern byte far gamepal[];
 
 void VH_SetDefaultColors (void);
 
@@ -106,7 +108,7 @@ void VH_SetDefaultColors (void);
 #define VW_SetLineWidth		VL_SetLineWidth
 #define VW_ColorBorder	VL_ColorBorder
 #define VW_WaitVBL		VL_WaitVBL
-#define VW_FadeIn()		VL_FadeIn(0,255,&gamepal,30);
+#define VW_FadeIn()		VL_FadeIn(0,255,gamepal,30);
 #define VW_FadeOut()	VL_FadeOut(0,255,0,0,0,30);
 #define VW_ScreenToScreen	VL_ScreenToScreen
 #define VW_SetDefaultColors	VH_SetDefaultColors

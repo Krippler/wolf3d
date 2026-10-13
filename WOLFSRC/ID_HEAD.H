@@ -15,8 +15,8 @@
 
 typedef	enum	{false,true}	boolean;
 typedef	unsigned	char		byte;
-typedef	unsigned	int			word;
-typedef	unsigned	long		longword;
+typedef	uint16_t		word;
+typedef	uint32_t		longword;
 typedef	byte *					Ptr;
 
 typedef	struct

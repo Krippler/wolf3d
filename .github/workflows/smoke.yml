@@ -1,0 +1,65 @@
+name: Smoke test
+
+# Builds both engines and plays a little of the shareware episode's first
+# level on a throwaway Xvfb, checking what comes out -- see
+# tools/smoke-test.sh. The shareware the repository carries is freely
+# distributable, so this reaches a real level: the renderer, movement, the
+# controller from the socket the page talks to, the sound as far as the
+# stream a browser would receive, a savegame, a clean quit.
+#
+# Nothing here publishes anything; docker-publish.yml does that.
+
+on:
+  push:
+    branches: ["master", "claude/**", "fix/**", "feat/**"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc libc6-dev make libx11-dev libxext-dev libpulse-dev \
+            xvfb xdotool imagemagick
+
+      - name: Build the engines
+        run: make -C WOLFSRC -j"$(nproc)"
+
+      # PULSE=0 is the configuration nobody builds by hand, and so the one
+      # that would rot unnoticed. Built into a copy so the tree above keeps
+      # the default build for the test.
+      - name: Build without PulseAudio
+        run: |
+          cp -r WOLFSRC "${RUNNER_TEMP}/nopulse"
+          make -C "${RUNNER_TEMP}/nopulse" clean >/dev/null
+          make -C "${RUNNER_TEMP}/nopulse" -j"$(nproc)" PULSE=0
+
+      - name: Run the smoke test
+        run: tools/smoke-test.sh "${RUNNER_TEMP}/wolf-smoke"
+
+      - name: Keep the screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke
+          path: |
+            ${{ runner.temp }}/wolf-smoke/*.png
+            ${{ runner.temp }}/wolf-smoke/*.log
+          if-no-files-found: ignore
+
+      - name: Check the scripts, the page's modules and the template parse
+        run: |
+          sh -n docker/entrypoint.sh
+          sh -n tools/smoke-test.sh
+          sh -n tools/build-linux-tarball.sh
+          sh -n desktop/wolf3d
+          sh -n desktop/install.sh
+          python3 -c "import ast; ast.parse(open('docker/wolf-wsproxy.py').read())"
+          for f in docker/*.js; do node --check "$f"; done
+          python3 -c "import xml.dom.minidom as m; m.parse('templates/unraid.xml'); m.parse('ca_profile.xml')"
