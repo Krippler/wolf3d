@@ -338,8 +338,17 @@ void PollJoystickButtons (void)
 ===================
 */
 
+int	controlstrafe;		// the strafe keys' sideways move: + right, - left
+
 void PollKeyboardMove (void)
 {
+	int	step = buttonstate[bt_run] ? RUNMOVE*tics : BASEMOVE*tics;
+
+	if (sys_setting[set_strafeleft] && Keyboard[sys_setting[set_strafeleft]])
+		controlstrafe -= step;
+	if (sys_setting[set_straferight] && Keyboard[sys_setting[set_straferight]])
+		controlstrafe += step;
+
 	if (buttonstate[bt_run])
 	{
 		if (Keyboard[dirscan[di_north]])
@@ -487,6 +496,7 @@ void PollControls (void)
 
 	controlx = 0;
 	controly = 0;
+	controlstrafe = 0;
 	memcpy (buttonheld,buttonstate,sizeof(buttonstate));
 	memset (buttonstate,0,sizeof(buttonstate));
 
@@ -555,6 +565,11 @@ void PollControls (void)
 		controly = max;
 	else if (controly < min)
 		controly = min;
+
+	if (controlstrafe > max)
+		controlstrafe = max;
+	else if (controlstrafe < min)
+		controlstrafe = min;
 
 	if (demorecord)
 	{

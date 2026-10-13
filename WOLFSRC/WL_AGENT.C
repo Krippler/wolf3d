@@ -200,6 +200,24 @@ void ControlMovement (objtype *ob)
 	}
 
 //
+// the strafe keys, from the Settings pages: sideways whatever bt_strafe says
+//
+	if (controlstrafe > 0)
+	{
+		angle = ob->angle - ANGLES/4;
+		if (angle < 0)
+			angle += ANGLES;
+		Thrust (angle,controlstrafe*MOVESCALE);
+	}
+	else if (controlstrafe < 0)
+	{
+		angle = ob->angle + ANGLES/4;
+		if (angle >= ANGLES)
+			angle -= ANGLES;
+		Thrust (angle,-controlstrafe*MOVESCALE);
+	}
+
+//
 // forward/backwards move
 //
 	if (controly < 0)

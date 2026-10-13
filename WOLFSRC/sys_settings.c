@@ -16,6 +16,7 @@
 
 #define SETTINGSFILE	"settings"
 #define GAMEFILE		"game"
+#define NEWGAMEFILE		"newgame"
 
 int	sys_setting[SET_COUNT];
 
@@ -33,6 +34,8 @@ static const struct
 	{"alwaysrun",	0,1},
 	{"vibration",	0,1},
 	{"capture",		0,1},
+	{"strafeleft",	0,0x7f},
+	{"straferight",	0,0x7f},
 };
 
 static int	loaded;
@@ -51,6 +54,8 @@ static void Defaults (void)
 	sys_setting[set_alwaysrun] = 0;
 	sys_setting[set_vibration] = 1;
 	sys_setting[set_capture] = !getenv ("WOLF_NOGRAB");
+	sys_setting[set_strafeleft] = 0x33;		// , and . -- free in the game,
+	sys_setting[set_straferight] = 0x34;	// and where DOOM put them
 }
 
 static void Clamp (int i)
@@ -190,11 +195,11 @@ const char *SYS_GameTitle (const char *kind)
 	{
 		{"wl6","Wolfenstein 3-D"},
 		{"wl3","Wolfenstein 3-D"},
-		{"wl1","Shareware episode"},
+		{"wl1","Wolfenstein shareware"},
 		{"sod","Spear of Destiny"},
 		{"sd2","Return to Danger"},
 		{"sd3","Ultimate Challenge"},
-		{"sdm","Spear demo"},
+		{"sdm","Spear of Destiny demo"},
 	};
 	unsigned	i;
 
@@ -222,4 +227,20 @@ int SYS_ChooseGame (const char *kind)
 		return 0;
 	fprintf (f,"%s\n",kind);
 	return fclose (f) == 0;
+}
+
+//
+// Chosen at New Game: the engine that starts next goes straight to its own
+// New Game screen rather than the title, and removes the note as it does.
+//
+int SYS_RequestNewGame (void)
+{
+	FILE	*f = fopen (NEWGAMEFILE,"w");
+
+	return f && fclose (f) == 0;
+}
+
+int SYS_TakeNewGame (void)
+{
+	return remove (NEWGAMEFILE) == 0;
 }

@@ -6,7 +6,8 @@
 # and checks what comes out:
 #
 #   - the picture is a picture, not one colour
-#   - holding the up arrow walks, and the controller's stick turns
+#   - holding the up arrow walks, the strafe key steps aside, and the
+#     controller's stick turns
 #   - the controller connection says which shape to draw the picture
 #   - there is sound, music and effects both, in the stream a browser gets
 #   - a game saved is a game that loads
@@ -101,6 +102,11 @@ shot 3-pad
 [ "$said" = "aspect" ] && pass "the controller connection says which shape to draw" \
                        || fail "the controller connection said nothing first"
 differ 2-walked 3-pad && pass "the controller turns" || fail "the controller changed nothing"
+
+press period 0.8		# the strafe-right key, by default
+sleep 0.3
+shot 3-strafed
+differ 3-pad 3-strafed && pass "the strafe key steps sideways" || fail "the strafe key changed nothing"
 
 press Control_L 0.2
 sleep 0.5

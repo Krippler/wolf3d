@@ -49,6 +49,10 @@ char far endStrings[9][80]=
 #endif
 };
 
+static	boolean		pickedgame;			// New Game: the game is already chosen
+		boolean		cp_startnewgame;	// DemoLoop: go straight to New Game
+static	void		SwitchGame(const char *kind,boolean newgame);
+
 CP_iteminfo
 	MainItems={MENU_X,MENU_Y,10,STARTITEM,24},
 	SndItems={SM_X,SM_Y1,12,0,52},
@@ -403,8 +407,27 @@ void US_ControlPanel(byte scancode)
 	StartGame=0;
 
 	//
+	// STRAIGHT TO NEW GAME, HAVING CHOSEN THIS GAME FOR IT IN ANOTHER ENGINE
+	//
+	if (cp_startnewgame)
+	{
+		cp_startnewgame=false;
+		pickedgame=true;
+		MainItems.curpos=newgame;
+		MenuFadeOut();
+		CP_NewGame();
+		pickedgame=false;
+		if (!StartGame)
+		{
+			DrawMainMenu();
+			MenuFadeIn();
+		}
+	}
+
+	//
 	// MAIN MENU LOOP
 	//
+	if (!StartGame)
 	do
 	{
 		which=HandleMenu(&MainItems,&MainMenu[0],NULL);
@@ -933,6 +956,105 @@ void CP_ViewScores(void)
 // START A NEW GAME
 //
 ////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
+//
+// WHICH GAME? Before the episode or the difficulty, when the launcher found
+// more than one game -- Wolfenstein and Spear of Destiny, say. Choosing the
+// one this engine plays carries on; choosing another restarts into that
+// one's engine at its own New Game screen. Returns 0 if Esc was pressed.
+//
+////////////////////////////////////////////////////////////////////
+
+
+static const char *PickKind(int i)
+{
+	return SYS_GameKind(i);
+}
+
+//
+// The games worth offering: the shareware not beside the registered game,
+// nor Spear's demo beside the full Spear
+//
+static int GameOffered(const char *kind)
+{
+	int i;
+
+	for (i=0;i<SYS_NumGames();i++)
+	{
+		if (!strcmp(kind,"wl1") && !strcmp(PickKind(i),"wl6"))
+			return 0;
+		if (!strcmp(kind,"sdm") && !strcmp(PickKind(i),"sod"))
+			return 0;
+	}
+	return 1;
+}
+
+static int PickGame(void)
+{
+	static CP_itemtype	items[8];
+	static char			*kinds[8];
+	CP_iteminfo			info={48,72,0,0,24};
+	int					i,n=0,which;
+	char				msg[96];
+
+	if (pickedgame)
+		return 1;
+
+	for (i=0;i<SYS_NumGames() && n<8;i++)
+		if (GameOffered(SYS_GameKind(i)))
+		{
+			kinds[n]=(char *)SYS_GameKind(i);
+			items[n].active=1;
+			strncpy(items[n].string,SYS_GameTitle(kinds[n]),sizeof(items[n].string)-1);
+			items[n].routine=NULL;
+			if (SYS_IsGameNow(kinds[n]))
+				info.curpos=n;
+			n++;
+		}
+	if (n<2)
+		return 1;
+	info.amount=n;
+
+	for (;;)
+	{
+		ClearMScreen();
+		VWB_DrawPic(112,184,C_MOUSELBACKPIC);
+		DrawWindow(info.x-8,info.y-5,256,n*13+6,BKGDCOLOR);
+		WindowX=0;
+		WindowW=320;
+		PrintY=info.y-34;
+		fontnumber=1;
+		SETFONTCOLOR(READHCOLOR,BKGDCOLOR);
+		US_CPrint("Which game to play?");
+		DrawMenu(&info,items);
+		DrawMenuGun(&info);
+		VW_UpdateScreen();
+		MenuFadeIn();
+		WaitKeyUp();
+
+		which=HandleMenu(&info,items,NULL);
+		if (which<0)
+		{
+			MenuFadeOut();
+			return 0;
+		}
+		if (SYS_IsGameNow(kinds[which]))
+		{
+			MenuFadeOut();
+			return 1;
+		}
+
+		if (ingame)
+		{
+			sprintf(msg,"Play %s?\nThe game in progress\nis lost unless saved.",SYS_GameTitle(kinds[which]));
+			if (!Confirm(msg))
+				continue;
+		}
+		SwitchGame(kinds[which],true);		// returns only on failure
+	}
+}
+
+
 void CP_NewGame(void)
 {
 	int which,episode;
@@ -940,6 +1062,15 @@ void CP_NewGame(void)
 #ifdef SPEAR
 	UnCacheLump (OPTIONS_LUMP_START,OPTIONS_LUMP_END);
 #endif
+
+pickgame:
+	if (!PickGame())
+	{
+#ifdef SPEAR
+		CacheLump (OPTIONS_LUMP_START,OPTIONS_LUMP_END);
+#endif
+		return;
+	}
 
 
 #ifndef SPEAR
@@ -953,6 +1084,8 @@ firstpart:
 		{
 			case -1:
 				MenuFadeOut();
+				if (!pickedgame && SYS_NumGames()>1)
+					goto pickgame;
 				return;
 
 			default:
@@ -1024,6 +1157,8 @@ firstpart:
 		goto firstpart;
 		#else
 		UnCacheLump (NEWGAME_LUMP_START,NEWGAME_LUMP_END);
+		if (!pickedgame && SYS_NumGames()>1)
+			goto pickgame;
 		CacheLump (OPTIONS_LUMP_START,OPTIONS_LUMP_END);
 		return;
 		#endif
@@ -2068,7 +2203,7 @@ void DrawCtlScreen(void)
 #define SET_VAL		200		// where a setting's value is drawn
 #define SET_MAX		16
 
-enum {SK_ONOFF,SK_LEVEL,SK_CHOICE,SK_GAME};
+enum {SK_ONOFF,SK_LEVEL,SK_CHOICE,SK_GAME,SK_KEY};
 
 typedef struct
 {
@@ -2087,14 +2222,16 @@ void	WriteConfig(void);
 void	SettingsPicture(int);
 void	SettingsSound(int);
 void	SettingsControls(int);
+void	SettingsKeys(int);
 
-CP_iteminfo	SetItems={SET_X+16,SET_Y,4,0,24};
+CP_iteminfo	SetItems={SET_X+16,SET_Y,5,0,24};
 CP_itemtype far SetMenu[]=
 {
 	{1,"Game",SettingsGame},
 	{1,"Picture",SettingsPicture},
 	{1,"Sound levels",SettingsSound},
-	{1,"Mouse and controller",SettingsControls}
+	{1,"Mouse and controller",SettingsControls},
+	{1,"Keys",SettingsKeys}
 };
 
 
@@ -2115,7 +2252,7 @@ static void DrawSettingsTitle(char *title)
 static void DrawSettingsMenu(void)
 {
 	DrawSettingsTitle("Settings");
-	DrawWindow(SET_X+8,SET_Y-5,SET_W-32,4*13+6,BKGDCOLOR);
+	DrawWindow(SET_X+8,SET_Y-5,SET_W-32,5*13+6,BKGDCOLOR);
 
 	SetMenu[0].active=SYS_NumGames()>1;
 	if (!SetMenu[SetItems.curpos].active)
@@ -2179,8 +2316,13 @@ static void DrawSettingsItem(setitem_t *item,int y,int lit)
 			US_Print(item->choices[sys_setting[item->which]-item->first]);
 			break;
 
+		case SK_KEY:
+			PrintX=SET_VAL;
+			US_Print(sys_setting[item->which]?(char *)IN_GetScanName(sys_setting[item->which]):"None");
+			break;
+
 		case SK_GAME:
-			VWB_DrawPic(SET_VAL+40,y+1,
+			VWB_DrawPic(SET_VAL+64,y+1,
 				SYS_IsGameNow(SYS_GameKind(item->which))?C_SELECTEDPIC:C_NOTSELECTEDPIC);
 			break;
 	}
@@ -2201,8 +2343,26 @@ static void DrawSettingsPage(char *title,setitem_t *items,int n,int cur)
 
 //
 // Switch to another game: the launcher starts its engine when this one ends
-// with status 3. Returns only if it was not to be.
+// with status 3, at its New Game screen if newgame. Returns only if the
+// choice could not be written down.
 //
+static void SwitchGame(const char *kind,boolean newgame)
+{
+	if (!SYS_ChooseGame(kind) || (newgame && !SYS_RequestNewGame()))
+	{
+		Message("The choice cannot be\nwritten down here.");
+		IN_ClearKeysDown();
+		IN_Ack();
+		return;
+	}
+
+	MenuFadeOut();
+	SYS_SaveSettings();
+	WriteConfig();
+	ShutdownId();
+	exit(3);
+}
+
 static void ChooseGame(setitem_t *item)
 {
 	static char	msg[96];
@@ -2219,18 +2379,41 @@ static void ChooseGame(setitem_t *item)
 	if (!Confirm(msg))
 		return;
 
-	if (!SYS_ChooseGame(kind))
-	{
-		Message("The choice cannot be\nwritten down here.");
-		IN_ClearKeysDown();
-		IN_Ack();
-		return;
-	}
+	SwitchGame(kind,false);
+}
 
-	MenuFadeOut();
-	WriteConfig();
-	ShutdownId();
-	exit(3);
+//
+// Wait for the key a binding is to have: Esc leaves it as it was. A key
+// the game already uses for something else is allowed, as it is in the
+// game's own Customize screen.
+//
+static int ReadSettingKey(setitem_t *item,int y)
+{
+	ScanCode key;
+
+	VWB_Bar(SET_VAL,y,SET_X+SET_W-12-SET_VAL,13,BKGDCOLOR);
+	SETFONTCOLOR(READHCOLOR,BKGDCOLOR);
+	PrintX=SET_VAL;
+	PrintY=y;
+	US_Print("?");
+	SETFONTCOLOR(TEXTCOLOR,BKGDCOLOR);
+	VW_UpdateScreen();
+
+	IN_ClearKeysDown();
+	LastScan=0;
+	while (!LastScan)
+		SYS_Spin();
+	key=LastScan;
+	IN_ClearKeysDown();
+
+	if (key==sc_Escape)
+	{
+		SD_PlaySound(ESCPRESSEDSND);
+		return 0;
+	}
+	sys_setting[item->which]=key;
+	ShootSnd();
+	return 1;
 }
 
 static void SettingsPage(char *title,setitem_t *items,int n)
@@ -2275,7 +2458,29 @@ static void SettingsPage(char *title,setitem_t *items,int n)
 		if (ci.button0 || Keyboard[sc_Space] || Keyboard[sc_Enter])
 			step=2;
 
-		if (step && item->kind==SK_GAME)
+		if (step==2 && item->kind==SK_KEY)
+		{
+			WaitKeyUp();
+			changed|=ReadSettingKey(item,SET_Y+cur*13);
+			DrawSettingsItem(item,SET_Y+cur*13,1);
+			VW_UpdateScreen();
+			WaitKeyUp();
+			IN_ClearKeysDown();
+		}
+		else if (step && item->kind==SK_KEY)
+		{
+			// Left clears the key; right does nothing
+			if (step<0 && sys_setting[item->which])
+			{
+				sys_setting[item->which]=0;
+				changed=1;
+				DrawSettingsItem(item,SET_Y+cur*13,1);
+				VW_UpdateScreen();
+				SD_PlaySound(MOVEGUN1SND);
+			}
+			TicDelay(20);
+		}
+		else if (step && item->kind==SK_GAME)
 		{
 			if (step==2)
 			{
@@ -2369,6 +2574,19 @@ void SettingsSound(int unused)
 	items[1].kind=SK_LEVEL;
 	items[1].which=set_effects;
 	SettingsPage("Sound levels",items,2);
+}
+
+void SettingsKeys(int unused)
+{
+	setitem_t	items[2];
+
+	items[0].name="Strafe left";
+	items[0].kind=SK_KEY;
+	items[0].which=set_strafeleft;
+	items[1].name="Strafe right";
+	items[1].kind=SK_KEY;
+	items[1].which=set_straferight;
+	SettingsPage("Keys",items,2);
 }
 
 void SettingsControls(int unused)

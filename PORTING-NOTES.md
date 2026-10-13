@@ -417,6 +417,20 @@ launchers -- `docker/entrypoint.sh` and `desktop/wolf3d` -- take as "start
 the engine for that one"; they say which games there are in `WOLF_GAMES`,
 so an engine started by hand offers none.
 
+New Game asks the same question first, when there is more than one game
+(the shareware is left out beside the registered game, and Spear's demo
+beside Spear). Choosing another also leaves a file, `newgame`, which the
+next engine removes as it starts and takes as "skip the title, open New
+Game": the player goes from the question to the next game's episodes or
+difficulty as if it were one menu.
+
+The strafe keys are a third sideways move beside the two the game had --
+the arrows with the strafe button held, and the mouse or joystick with it
+held -- added in `ControlMovement` from `controlstrafe`, which
+`PollKeyboardMove` sets from the keys in `settings`. They are kept there,
+not in `buttonscan`, since that array's size is part of `CONFIG.WL6`'s.
+They are not recorded in demos, which have no room for them.
+
 ## Things DOS let the code get away with
 
 - **Writing to string constants.** `US_Print` and `US_CPrint` cut their

@@ -40,7 +40,9 @@ while you play and let go in the menus.
 F12, or Settings at the bottom of the Control menu, has the rest: which
 game, the window's size and shape (4:3 as DOS showed it, or square pixels),
 the music and effects levels, whether the mouse walks as well as turns,
-always running, and holding on to the pointer. They take effect at once.
+always running, holding on to the pointer, and the keys that strafe left
+and right (, and . to begin with). They take effect at once. With more than
+one game in the data directory, New Game asks which to play first.
 WOLF_SCALE, WOLF_ASPECT=square and WOLF_NOGRAB=1 set the same things from
 outside until they are changed there.
 

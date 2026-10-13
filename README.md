@@ -36,9 +36,11 @@ Recognised, in any case:
 | `*.SD2`, `*.SD3` | its mission packs, *Return to Danger* and *Ultimate Challenge* |
 | `*.SDM` | the Spear of Destiny demo |
 
-Put as many as you have in the one directory. The first in the table is
-played, and **Settings → Game** in the game switches between them (the
-choice is remembered); `WOLF_GAME=sod`, say, picks one from outside. The
+Put as many as you have in the one directory. **New Game** then asks which
+to play -- Wolfenstein or Spear of Destiny -- before the episode or the
+difficulty, and goes straight on to that game's own; **Settings → Game**
+switches between them too. The choice is remembered, and `WOLF_GAME=sod`,
+say, picks one from outside. The
 mission packs' files keep their own extension, as they came, beside the
 Spear of Destiny ones -- or alone, with the `*.SOD` files they need.
 
@@ -76,10 +78,11 @@ weapon, the sticks walk and turn -- and vibrates when you are hit.
 **Settings**, at the bottom of the Control menu or on <kbd>F12</kbd> while
 playing, holds what DOS left to the monitor and the sound card: which game
 to play, the picture's shape (4:3 as DOS showed it, or square pixels) and on
-a desktop the window's size, the music and effects levels separately, and
+a desktop the window's size, the music and effects levels separately,
 whether the mouse walks as well as turns, running all the time, controller
-vibration and holding on to the pointer. Changes are made at once and kept
-in `settings` beside the savegames.
+vibration, holding on to the pointer, and keys to strafe left and right
+(<kbd>,</kbd> and <kbd>.</kbd> to begin with). Changes are made at once and
+kept in `settings` beside the savegames.
 
 ## On a Linux desktop, without Docker
 
