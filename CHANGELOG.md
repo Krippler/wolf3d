@@ -5,7 +5,7 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
-## [Unreleased]
+## [1.1.0] — 2026-10-13
 
 ### Changed
 

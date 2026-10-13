@@ -35,6 +35,10 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.1.0
+- Keys to strafe left and right (, and . by default), rebound under Settings - Keys.
+- New Game asks which game to play when there is more than one.
+
 ### 1.0.0
 - First release: the 1995 source release ported to 64-bit Linux, the shareware episode built in, playable in a browser with sound and a controller.
 - Spear of Destiny, its mission packs and its demo, from your own copy.
