@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Wolfenstein3D</Name>
+  <Repository>ghcr.io/krippler/wolf3d:latest</Repository>
+  <Registry>https://github.com/Krippler/wolf3d/pkgs/container/wolf3d</Registry>
+  <GitHub>https://github.com/Krippler/wolf3d</GitHub>
+  <Project>https://github.com/Krippler/wolf3d</Project>
+  <Support>https://github.com/Krippler/wolf3d/issues</Support>
+  <ReadmeURL>https://github.com/Krippler/wolf3d/blob/master/DOCKER.md</ReadmeURL>
+  <Beta>False</Beta>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Overview>
+    id Software's Wolfenstein 3-D, from its 1995 source release, ported to 64-bit Linux and playable in a browser.&#13;
+    &#13;
+    The container runs its own X server (Xvfb) and exports it over noVNC, so nothing needs to be installed on the host.&#13;
+    &#13;
+    Sound comes out of the browser, with nothing to set up: the AdLib music and effects, emulated, and the Sound Blaster's digitized voices are mixed inside the container and sent to the same page as the picture, over the WebUI port. Click to start playing and the sound starts with it, because browsers will not play audio without a click.&#13;
+    &#13;
+    The shareware episode is included, so this plays as soon as it starts - episode 1, ten levels. To play all six episodes, put the files from your own copy of the game (VSWAP.WL6 and the rest) into the Game data folder below and they will be used instead. Names are matched without regard to case. The registered game is not included and must come from your own copy.&#13;
+    &#13;
+    The WebUI opens a client that captures the mouse. Escape hands the cursor back, and the ` key opens the game menu. A game controller works too, on a phone as well as a desktop, and vibrates when you are hit.
+  </Overview>
+  <Category>GameServers: Other:</Category>
+  <WebUI>http://[IP]:[PORT:6080]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Krippler/wolf3d/master/templates/unraid.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Krippler/wolf3d/master/templates/wolf3d-icon.png</Icon>
+  <ExtraParams>--restart=unless-stopped</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
+  <Changes>
+### 1.0.0
+- First release: the 1995 source release ported to 64-bit Linux, the shareware episode built in, playable in a browser with sound and a controller.
+  </Changes>
+
+  <Config Name="WebUI Port" Target="6080" Default="6080" Mode="tcp"
+          Description="Port for the browser client, carrying the picture, the sound and the controller. Open the WebUI to play."
+          Type="Port" Display="always" Required="true" Mask="false">6080</Config>
+
+  <Config Name="VNC Port" Target="5900" Default="5900" Mode="tcp"
+          Description="Optional. Only needed if you want to connect with a native VNC client instead of the browser."
+          Type="Port" Display="advanced" Required="false" Mask="false"></Config>
+
+  <Config Name="Game data" Target="/data" Default="/mnt/user/appdata/wolf3d/data" Mode="ro"
+          Description="Optional. The shareware episode is already in the container. Put the files of your own copy of the game here - VSWAP.WL6, VGAGRAPH.WL6 and the rest, or the .WL3 files of the three-episode version - to play the full game. Mounted read only; the container never writes to it."
+          Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/wolf3d/data</Config>
+
+  <Config Name="Saves and config" Target="/wolf/state" Default="/mnt/user/appdata/wolf3d/state" Mode="rw"
+          Description="Savegames, settings, high scores and the container's logs."
+          Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/wolf3d/state</Config>
+
+  <Config Name="PUID" Target="PUID" Default="99" Mode=""
+          Description="UID the game runs as. Must be able to write the saves folder. Unraid default: 99 (nobody)."
+          Type="Variable" Display="always" Required="true" Mask="false">99</Config>
+
+  <Config Name="PGID" Target="PGID" Default="100" Mode=""
+          Description="GID the game runs as. Unraid default: 100 (users)."
+          Type="Variable" Display="always" Required="true" Mask="false">100</Config>
+
+  <Config Name="Scale" Target="WOLF_SCALE" Default="2"
+          Description="Pixel scale, 1 to 4. The picture is 320x200 multiplied by this, so 2 gives 640x400. Larger values cost more bandwidth to the browser."
+          Type="Variable" Display="always" Required="false" Mask="false">2</Config>
+
+  <Config Name="Sound" Target="WOLF_SOUND" Default="1"
+          Description="Set to 0 for no sound at all, which saves the bandwidth the audio stream uses."
+          Type="Variable" Display="advanced" Required="false" Mask="false">1</Config>
+
+  <Config Name="Restart on crash" Target="WOLF_RESTART" Default="1"
+          Description="Start the game again if it crashes or you quit it, leaving the container up so the browser reconnects on its own. Set to 0 to have the container stop instead."
+          Type="Variable" Display="advanced" Required="false" Mask="false">1</Config>
+
+  <Config Name="VNC Password" Target="WOLF_VNC_PASSWORD" Default=""
+          Description="Optional. If set, the browser and any VNC client must supply this password. Leave empty for no password, which is fine on a LAN you trust."
+          Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="Audio rate" Target="WOLF_AUDIO_RATE" Default="22050"
+          Description="Rate the sound reaches the browser at, in Hz. 22050 is the default and costs about 700 kbit/s. Use 11025 to halve that, or 44100 to double it."
+          Type="Variable" Display="advanced" Required="false" Mask="false">22050</Config>
+
+  <Config Name="PulseAudio server" Target="PULSE_SERVER" Default=""
+          Description="Optional, and not what most people want. Leave empty and the sound goes to the browser. Set this to a reachable PulseAudio server, for example tcp:192.168.1.50:4713, and the sound goes there instead - to speakers attached to that machine, not to yours."
+          Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+</Container>

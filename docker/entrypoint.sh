@@ -126,7 +126,10 @@ export WOLF_DATA="$DATA"
 # Where the sound goes: to the browser, unless a PulseAudio server has been
 # handed in, in which case straight to it.
 #
-if [ -n "${PULSE_SERVER:-}" ]; then
+if [ "${WOLF_SOUND:-1}" = "0" ]; then
+    export WOLF_AUDIO=none
+    log "sound: off (WOLF_SOUND=0)"
+elif [ -n "${PULSE_SERVER:-}" ]; then
     export WOLF_AUDIO=pulse
     log "sound: to the PulseAudio server at $PULSE_SERVER"
 else

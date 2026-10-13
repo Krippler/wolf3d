@@ -19,9 +19,14 @@ PULSE	?= 1
 
 # -fwrapv: int arithmetic wraps, as it did on the 8086, and the game relies
 # on it. -fno-strict-aliasing: the game reads its data files through
-# pointers of whatever type suits.
+# pointers of whatever type suits. -std=gnu17: C23, gcc 15's default, makes
+# false and true keywords, and the game declares them itself; and the
+# 1992 code's loose function pointer types stay warnings, as in gcc 13,
+# rather than the errors gcc 14 makes them.
 CFLAGS	?= -O2 -g
-CFLAGS	+= -fwrapv -fno-strict-aliasing -fcommon \
+CFLAGS	+= -std=gnu17 -fwrapv -fno-strict-aliasing -fcommon \
+		   -Wno-error=incompatible-pointer-types -Wno-error=int-conversion \
+		   -Wno-error=implicit-function-declaration -Wno-incompatible-pointer-types \
 		   -Wall -Wno-unused -Wno-parentheses -Wno-missing-braces \
 		   -Wno-pointer-sign -Wno-char-subscripts -Wno-switch \
 		   -Wno-implicit-int -Wno-dangling-else -Wno-format-overflow \

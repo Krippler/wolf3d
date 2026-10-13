@@ -100,6 +100,7 @@ RUN chmod +x /usr/local/bin/wolf-entrypoint /usr/local/bin/wolf-wsproxy \
 
 ENV WOLF_VERSION=${WOLF_VERSION} \
     WOLF_SCALE=2 \
+    WOLF_AUDIO_RATE=22050 \
     WOLF_STATE=/wolf/state \
     WOLF_DATAMOUNT=/data \
     WOLF_VNC_PORT=5900 \
