@@ -71,7 +71,7 @@ static	int			ymap[1440];				// window row -> screen row
 
 static	pthread_t		machine;
 static	pthread_mutex_t	lock = PTHREAD_MUTEX_INITIALIZER;
-static	pthread_cond_t	ticked = PTHREAD_COND_INITIALIZER;
+static	pthread_cond_t	ticked;			// on CLOCK_MONOTONIC: see SYS_Startup
 static	volatile int	running;
 static	volatile int	shownow;			// a flip: scan out before the next tick
 static	longword		vblcount;			// ticks since startup, for WaitVBL
@@ -620,6 +620,29 @@ void SYS_Spin (void)
 	nanosleep (&ms,NULL);
 }
 
+//
+// For the routines a polling loop calls over and over -- reading the
+// controls, checking for a key -- without a SYS_Spin of its own, of which
+// the menus have dozens. Called again within a millisecond of the last
+// time, it is being polled, so it sleeps that millisecond. Called once a
+// frame, as the play loop does, it never sleeps at all.
+//
+void SYS_Throttle (void)
+{
+	static struct timespec	last;
+	struct timespec			now;
+	long					ns;
+
+	clock_gettime (CLOCK_MONOTONIC,&now);
+	ns = (now.tv_sec - last.tv_sec) * 1000000000L + (now.tv_nsec - last.tv_nsec);
+	if (ns >= 0 && ns < 1000000)
+	{
+		SYS_Spin ();
+		clock_gettime (CLOCK_MONOTONIC,&now);
+	}
+	last = now;
+}
+
 static void ParseSize (void)
 {
 	const char	*env;
@@ -708,8 +731,18 @@ void SYS_Startup (void)
 	XColor			black = {0};
 	static char		nodata[8];
 
+	pthread_condattr_t	cattr;
+
 	if (running)
 		return;
+
+	// The tick is waited for with an absolute deadline on the monotonic
+	// clock, so the condition variable has to time out on that clock too;
+	// on the default, the real-time clock, every deadline is long past.
+	pthread_condattr_init (&cattr);
+	pthread_condattr_setclock (&cattr,CLOCK_MONOTONIC);
+	pthread_cond_init (&ticked,&cattr);
+	pthread_condattr_destroy (&cattr);
 
 	ParseSize ();
 

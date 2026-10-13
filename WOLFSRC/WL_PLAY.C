@@ -461,7 +461,7 @@ void PollControls (void)
 	if (demoplayback)
 	{
 		while (TimeCount<lasttimecount+DEMOTICS)
-		;
+			SYS_Spin ();
 		TimeCount = lasttimecount + DEMOTICS;
 		lasttimecount += DEMOTICS;
 		tics = DEMOTICS;
@@ -472,7 +472,7 @@ void PollControls (void)
 // take DEMOTICS or more tics, and modify Timecount to reflect time taken
 //
 		while (TimeCount<lasttimecount+DEMOTICS)
-		;
+			SYS_Spin ();
 		TimeCount = lasttimecount + DEMOTICS;
 		lasttimecount += DEMOTICS;
 		tics = DEMOTICS;

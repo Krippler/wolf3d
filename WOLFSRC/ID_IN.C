@@ -654,6 +654,8 @@ IN_ReadControl(int player,ControlInfo *info)
 			ControlType	type;
 register	KeyboardDef	*def;
 
+	SYS_Throttle();
+
 	dx = dy = 0;
 	mx = my = motion_None;
 	buttons = 0;
@@ -847,6 +849,8 @@ void IN_StartAck(void)
 boolean IN_CheckAck (void)
 {
 	unsigned	i,buttons;
+
+	SYS_Throttle();
 
 //
 // see if something has been pressed

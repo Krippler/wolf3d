@@ -213,10 +213,13 @@ US_SetPrintRoutines(void (*measure)(char far *,word *,word *),void (*print)(char
 //
 ///////////////////////////////////////////////////////////////////////////
 void
-US_Print(char far *s)
+US_Print(char far *str)
 {
 	char	c,far *se;
 	word	w,h;
+	// The string is cut at each newline in place, which a string constant
+	// allowed under Borland and does not here: so a copy is cut instead.
+	char	*copy = strdup(str), *s = copy;
 
 	while (*s)
 	{
@@ -242,6 +245,8 @@ US_Print(char far *s)
 		else
 			PrintX += w;
 	}
+
+	free(copy);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -336,9 +341,10 @@ US_CPrintLine(char far *s)
 //
 ///////////////////////////////////////////////////////////////////////////
 void
-US_CPrint(char far *s)
+US_CPrint(char far *str)
 {
 	char	c,far *se;
+	char	*copy = strdup(str), *s = copy;	// see US_Print
 
 	while (*s)
 	{
@@ -356,6 +362,8 @@ US_CPrint(char far *s)
 			s++;
 		}
 	}
+
+	free(copy);
 }
 
 ///////////////////////////////////////////////////////////////////////////

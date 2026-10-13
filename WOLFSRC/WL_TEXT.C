@@ -166,7 +166,7 @@ void	TimedPicCommand (void)
 //
 	TimeCount = 0;
 	while (TimeCount < picdelay)
-	;
+		SYS_Spin ();
 
 //
 // draw pic
@@ -679,7 +679,7 @@ void ShowArticle (char far *article)
 
 		LastScan = 0;
 		while (!LastScan)
-		;
+			SYS_Spin ();
 
 		switch (LastScan)
 		{

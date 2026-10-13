@@ -430,7 +430,8 @@ void US_ControlPanel(byte scancode)
 			VL_FadeIn(0,255,grsegs[IDGUYSPALETTE],30);
 			UNCACHEGRCHUNK(IDGUYSPALETTE);
 
-			while (Keyboard[sc_I] || Keyboard[sc_D]);
+			while (Keyboard[sc_I] || Keyboard[sc_D])
+				SYS_Spin ();
 			IN_ClearKeysDown();
 			IN_Ack();
 
@@ -1742,7 +1743,8 @@ int CalibrateJoystick(void)
 	IN_GetJoyAbs(joystickport,&xmax,&ymax);
 	SD_PlaySound(SHOOTSND);
 
-	while (IN_JoyButtons());
+	while (IN_JoyButtons())
+		SYS_Spin ();
 
 	//
 	// ASSIGN ACTUAL VALUES HERE
@@ -1907,7 +1909,8 @@ void MouseSensitivity(void)
 					VWB_Bar(61+20*mouseadjustment,98,19,9,READHCOLOR);
 					VW_UpdateScreen();
 					SD_PlaySound(MOVEGUN1SND);
-					while(Keyboard[sc_LeftArrow]);
+					while(Keyboard[sc_LeftArrow])
+						SYS_Spin ();
 					WaitKeyUp();
 				}
 				break;
@@ -1923,7 +1926,8 @@ void MouseSensitivity(void)
 					VWB_Bar(61+20*mouseadjustment,98,19,9,READHCOLOR);
 					VW_UpdateScreen();
 					SD_PlaySound(MOVEGUN1SND);
-					while(Keyboard[sc_RightArrow]);
+					while(Keyboard[sc_RightArrow])
+						SYS_Spin ();
 					WaitKeyUp();
 				}
 				break;
@@ -2335,7 +2339,8 @@ void EnterCtrlData(int index,CustomCtrls *cust,void (*DrawRtn)(int),void (*Print
 	 } while(!cust->allowed[which]);
 	 redraw=1;
 	 SD_PlaySound(MOVEGUN1SND);
-	 while(ReadAnyControl(&ci),ci.dir!=dir_None);
+	 while(ReadAnyControl(&ci),ci.dir!=dir_None)
+	 	SYS_Spin ();
 	 IN_ClearKeysDown();
 	 break;
 
@@ -2348,7 +2353,8 @@ void EnterCtrlData(int index,CustomCtrls *cust,void (*DrawRtn)(int),void (*Print
 	 } while(!cust->allowed[which]);
 	 redraw=1;
 	 SD_PlaySound(MOVEGUN1SND);
-	 while(ReadAnyControl(&ci),ci.dir!=dir_None);
+	 while(ReadAnyControl(&ci),ci.dir!=dir_None)
+	 	SYS_Spin ();
 	 IN_ClearKeysDown();
 	 break;
    case dir_North:
@@ -3370,7 +3376,8 @@ void DrawHalfStep(int x,int y)
 	VW_UpdateScreen();
 	SD_PlaySound(MOVEGUN1SND);
 	TimeCount=0;
-	while(TimeCount<8);
+	while(TimeCount<8)
+		SYS_Spin ();
 }
 
 
@@ -3477,7 +3484,8 @@ void WaitKeyUp(void)
 								ci.button3|
 								Keyboard[sc_Space]|
 								Keyboard[sc_Enter]|
-								Keyboard[sc_Escape]);
+								Keyboard[sc_Escape])
+		SYS_Spin ();
 }
 
 

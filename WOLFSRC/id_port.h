@@ -230,6 +230,7 @@ static inline byte *VGA_Pixel (unsigned page, unsigned linewidth, int x, int y)
 void	SYS_Startup (void);
 void	SYS_Shutdown (void);
 void	SYS_Spin (void);				// a busy-wait loop's body
+void	SYS_Throttle (void);			// in what a polling loop calls
 void	SYS_WaitVBL (int vbls);
 void	SYS_SetDisplay (unsigned crtc, int pelpan);
 void	SYS_SetPalette (const byte *palette);	// 768 bytes, 6 bits each

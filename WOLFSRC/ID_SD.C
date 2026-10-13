@@ -376,6 +376,7 @@ SD_StopDigitized(void)
 void
 SD_Poll(void)
 {
+	SYS_Throttle();
 	SD_Lock();
 
 	if (DigiLeft && !DigiNextAddr)
