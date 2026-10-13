@@ -5,7 +5,7 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
-## [Unreleased]
+## [1.0.0] — 2026-10-13
 
 The first version: the 1995 source release, ported to 64-bit Linux and
 packaged to play in a browser.
