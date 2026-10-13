@@ -11,7 +11,7 @@
 # See DOCKER.md for the full set of options.
 
 ##############################################################################
-# Build stage: compile both engines.
+# Build stage: compile the four engines.
 ##############################################################################
 FROM ubuntu:24.04 AS build
 

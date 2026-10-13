@@ -106,8 +106,12 @@ the one with the game's files.
 
 ## Images
 
-Published to `ghcr.io/krippler/wolf3d`, `linux/amd64`. `latest` is the
-newest release, `edge` tracks `master`. Signed with cosign on every push.
+Published to `ghcr.io/krippler/wolf3d`, `linux/amd64`, and signed with
+cosign on every push. `latest` is the newest release, 1.0.0 to begin with;
+`1.0.0`, `1.0` and `1` pin a release as closely as you like; `edge` tracks
+`master`. Each release is on the
+[releases page](https://github.com/Krippler/wolf3d/releases) with its
+desktop tarball and its CHANGELOG section.
 Unraid users: the Community Applications template is
 [`templates/unraid.xml`](templates/unraid.xml).
 
