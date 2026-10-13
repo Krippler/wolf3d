@@ -35,6 +35,10 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.3.0
+- The view starts at its largest, and its size is under Settings - Picture.
+- Backspace opens the menu and backs out of it, as Esc does.
+
 ### 1.2.0
 - Every setting in one Settings menu (main menu, F4, F6 or F12): game, picture, sound devices and levels, every key, the mouse and its buttons.
 
