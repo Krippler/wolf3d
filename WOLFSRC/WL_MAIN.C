@@ -94,7 +94,31 @@ void ReadConfig(void)
 	SDSMode         sds;
 
 
-	if ( (file = open(configname,O_BINARY | O_RDONLY)) != -1)
+	int32_t			expected;
+
+	//
+	// The settings are written as the variables lie in memory, as they
+	// were, so a config file from DOS -- 16-bit ints, 16-bit enums -- is a
+	// different size from this one's and would read as nonsense. Only a
+	// file of exactly the size this build writes is taken.
+	//
+	expected = sizeof(HighScore) * MaxScores + sizeof(SDMode) + sizeof(SMMode)
+		+ sizeof(SDSMode) + sizeof(mouseenabled) + sizeof(joystickenabled)
+		+ sizeof(joypadenabled) + sizeof(joystickprogressive)
+		+ sizeof(joystickport) + sizeof(dirscan) + sizeof(buttonscan)
+		+ sizeof(buttonmouse) + sizeof(buttonjoy) + sizeof(viewsize)
+		+ sizeof(mouseadjustment);
+
+	file = open(configname,O_BINARY | O_RDONLY);
+	if (file != -1 && filelength(file) != expected)
+	{
+		fprintf (stderr,"%s is not a configuration this version wrote; "
+			"starting from the defaults\n",configname);
+		close(file);
+		file = -1;
+	}
+
+	if (file != -1)
 	{
 	//
 	// valid config file
@@ -133,8 +157,16 @@ void ReadConfig(void)
 
 		if (!MousePresent)
 			mouseenabled = false;
+		if (joystickport < 0 || joystickport >= MaxJoys)
+			joystickport = 0;
 		if (!JoysPresent[joystickport])
 			joystickenabled = false;
+
+		// A view size the menu could not have set breaks the renderer
+		if (viewsize < 4 || viewsize > 20)
+			viewsize = 15;
+		if (mouseadjustment < 0 || mouseadjustment > 9)
+			mouseadjustment = 5;
 
 		MainMenu[6].active=1;
 		MainItems.curpos=0;
@@ -1536,9 +1568,22 @@ void Quit (char *error)
 	unsigned        finscreen;
 	memptr	screen;
 
+	//
+	// Before the graphics are loaded there is no error screen to show, and
+	// on DOS the few errors that early were printed to the console: so are
+	// these.
+	//
+	if (!pictable)
+	{
+		if (error && *error)
+			fprintf (stderr,"Wolfenstein 3-D: %s\n",error);
+		SYS_Shutdown ();
+		exit (error && *error ? 1 : 0);
+	}
+
 
 	ClearMemory ();
-	if (!*error)
+	if (!error || !*error)
 	{
 	 #ifndef JAPAN
 	 CA_CacheGrChunk (ORDERSCREEN);

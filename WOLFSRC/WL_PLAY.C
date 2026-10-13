@@ -480,6 +480,10 @@ void PollControls (void)
 	else
 		CalcTics ();
 
+	// Capture the pointer while the mouse is playing, on a desktop: see
+	// sys_x11.c. Let go of it in the menus and the demos.
+	SYS_SetGrab (mouseenabled && !demoplayback);
+
 	controlx = 0;
 	controly = 0;
 	memcpy (buttonheld,buttonstate,sizeof(buttonstate));
@@ -1463,6 +1467,8 @@ void PlayLoop (void)
 		}
 
 	}while (!playstate && !startgame);
+
+	SYS_SetGrab (0);
 
 	if (playstate != ex_died)
 		FinishPaletteShifts ();

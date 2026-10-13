@@ -334,6 +334,8 @@ void US_ControlPanel(byte scancode)
 	int which,i,start;
 
 
+	SYS_SetGrab (0);
+
 	if (ingame)
 		if (CP_CheckQuick(scancode))
 			return;
@@ -3965,12 +3967,24 @@ void CheckForEpisodes(void)
 #endif
 
 #else
+#ifndef UPLOAD
+	//
+	// The shareware episode's graphics are numbered differently, and this
+	// engine was built for the registered game's: wolf3d-wl1 plays it.
+	//
+	if (!findfirst("*.WL1",&f,FA_ARCH))
+		Quit("These are the shareware episode's files (*.WL1). This engine "
+			 "plays the registered game; wolf3d-wl1 plays the shareware.");
+	else
+		Quit("NO WOLFENSTEIN 3-D DATA FILES to be found!");
+#else
 	if (!findfirst("*.WL1",&f,FA_ARCH))
 	{
 		strcpy(extension,"WL1");
 	}
 	else
 		Quit("NO WOLFENSTEIN 3-D DATA FILES to be found!");
+#endif
 #endif
 
 	strcat(configname,extension);

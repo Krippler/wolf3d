@@ -121,6 +121,8 @@ static const char *DataDir (void)
 
 static int TryOpen (const char *dir, const char *name, int flags, mode_t mode)
 {
+	DIR				*d;
+	struct dirent	*e;
 	char	path[4096];
 	char	upper[256],lower[256];
 	const char	*tries[3];
@@ -148,7 +150,30 @@ static int TryOpen (const char *dir, const char *name, int flags, mode_t mode)
 		if (fd != -1)
 			return fd;
 	}
-	return -1;
+
+	// Vswap.Wl6, say: look through the directory for it
+	d = opendir (dir ? dir : ".");
+	if (!d)
+		return -1;
+	fd = -1;
+	while (fd == -1 && (e = readdir (d)))
+		if (!strcasecmp (e->d_name,name))
+		{
+			snprintf (path,sizeof(path),"%s/%s",dir ? dir : ".",e->d_name);
+			fd = open (path,flags,mode);
+		}
+	closedir (d);
+	return fd;
+}
+
+//
+// The game's own files -- its settings and savegames -- are only ever its
+// own, in the current directory: one sitting in the data directory came
+// with the data, from DOS perhaps, and is no business of this one's.
+//
+static int IsOwnFile (const char *name)
+{
+	return !strncasecmp (name,"CONFIG.",7) || !strncasecmp (name,"SAVEGAM",7);
 }
 
 int SYS_Open (const char *name, int flags, ...)
@@ -178,7 +203,7 @@ int SYS_Open (const char *name, int flags, ...)
 		return open (name,flags);
 
 	fd = TryOpen (NULL,name,flags,0);
-	if (fd == -1 && DataDir ())
+	if (fd == -1 && DataDir () && !IsOwnFile (name))
 		fd = TryOpen (DataDir (),name,flags,0);
 	return fd;
 }
@@ -262,7 +287,7 @@ int findfirst (const char *pattern, struct ffblk *ff, int attrib)
 		return -1;
 
 	FindIn (st,".",pattern);
-	if (DataDir ())
+	if (DataDir () && !IsOwnFile (pattern))
 		FindIn (st,DataDir (),pattern);
 
 	ff->ff_priv = st;

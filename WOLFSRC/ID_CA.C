@@ -694,6 +694,22 @@ void CAL_SetupGrFile (void)
 		 O_RDONLY | O_BINARY, S_IREAD)) == -1)
 		CA_CannotOpen(fname);
 
+	//
+	// The chunk numbers are compiled in, and differ between versions of the
+	// data. The header's length says how many chunks there are: if it is
+	// not the number this build expects, every picture would be the wrong
+	// one, so say so instead.
+	//
+	if (filelength(handle) != (NUMCHUNKS+1)*FILEPOSSIZE)
+	{
+		static char	msg[200];
+
+		snprintf(msg,sizeof(msg),"%s has %d graphics chunks, and this engine "
+			"was built for %d: the data is from a version it does not play.",
+			fname,(int)(filelength(handle)/FILEPOSSIZE)-1,NUMCHUNKS);
+		Quit(msg);
+	}
+
 	CA_FarRead(handle, (memptr)grstarts, (NUMCHUNKS+1)*FILEPOSSIZE);
 
 	close(handle);
