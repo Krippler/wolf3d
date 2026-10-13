@@ -401,11 +401,24 @@ been played here, for want of the data.
 `sys_settings.c`, the end of `WL_MENU.C`'s control section.
 
 DOS left the shape of the picture to the monitor, its size to nobody, and
-the balance of music and effects to the sound card's mixer program. A page
-of the game's own menus -- built from the game's window, cursor and
-checkbox pictures, so it looks like the rest -- has those, the choice of
-game, and the mouse and controller behaviour the port added. It is on the
-Control menu and on F12 (`sc_F12` was `0x59` in `ID_IN.H`; it is `0x58`).
+the balance of music and effects to the sound card's mixer program. Pages
+in the game's own style -- built from its window, cursor and checkbox
+pictures, so they look like the rest -- have those, the choice of game, and
+the mouse and controller behaviour the port added.
+
+They have the game's own settings too, so that there is one place for all
+of it: the main menu's Control is Settings, and F4, F6 and F12 open it.
+The Sound page sets the devices the Sound menu did, as it did; the Keys
+page every key the Customize screen did, and the strafe keys; the Mouse
+page what the Control screen and Mouse Sensitivity did, and the mouse's
+buttons. The joystick settings went with them: the DOS joystick is not
+read, and a controller arrives as keys. The game's screens are still in
+`WL_MENU.C`, unreached. (`sc_F12` was `0x59` in `ID_IN.H`, and in the key
+names' table; it is `0x58`.)
+
+A page is a list of items: a name, the variable it sets, its range, and
+what to call when it changes. The game's variables are kept in its
+`CONFIG` file, written as a page is left, and the port's in `settings`.
 
 They are kept in `settings`, a text file of names and numbers, not in
 `CONFIG.WL6`, whose shape the game checks by size. A change takes effect at
