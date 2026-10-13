@@ -71,18 +71,24 @@ you gave it.
 
 Arrow keys move, Ctrl fires, Space opens doors, Alt strafes, Shift runs,
 1 to 4 change weapon. In the browser, <kbd>Esc</kbd> gives the mouse back
-and <kbd>`</kbd> opens the game's menu, where the keys and the mouse are set
-under Control. A game controller works too -- A fires, B opens, Y changes
-weapon, the sticks walk and turn -- and vibrates when you are hit.
+and <kbd>`</kbd> opens the game's menu. A game controller works too -- A
+fires, B opens, Y changes weapon, the sticks walk and turn -- and vibrates
+when you are hit.
 
-**Settings**, at the bottom of the Control menu or on <kbd>F12</kbd> while
-playing, holds what DOS left to the monitor and the sound card: which game
-to play, the picture's shape (4:3 as DOS showed it, or square pixels) and on
-a desktop the window's size, the music and effects levels separately,
-whether the mouse walks as well as turns, running all the time, controller
-vibration, holding on to the pointer, and keys to strafe left and right
-(<kbd>,</kbd> and <kbd>.</kbd> to begin with). Changes are made at once and
-kept in `settings` beside the savegames.
+Everything there is to set is under **Settings**, on the main menu where
+Control was, and on <kbd>F12</kbd> (<kbd>F4</kbd> goes straight to its
+Sound page, <kbd>F6</kbd> to the menu too). Its pages:
+
+| | |
+|---|---|
+| Game | which game to play, when there is more than one |
+| Picture | 4:3 as DOS showed it, or square pixels; on a desktop, the window's size |
+| Sound | the effects (AdLib, PC speaker or off), the digitized sounds, the music, and the music and effects levels apart |
+| Keys | forward, backward, turn left and right, strafe left and right (<kbd>,</kbd> and <kbd>.</kbd> to begin with), fire, open, run, and the strafe button |
+| Mouse and controller | the mouse on or off, its sensitivity, whether it walks as well as turns, what its buttons do; always run, controller vibration, and holding on to the pointer |
+
+Changes are made at once: the game's own, such as the keys, are kept in its
+`CONFIG` file, and the rest in `settings`, both beside the savegames.
 
 ## On a Linux desktop, without Docker
 

@@ -33,15 +33,16 @@ Playing
 -------
 
 Arrow keys move, Ctrl fires, Space opens doors, Alt strafes, Shift runs,
-1-4 change weapon, Esc is the menu. The mouse turns and fires once it is
-enabled in the menu's Control screen (it is by default); it is captured
-while you play and let go in the menus.
+1-4 change weapon, Esc is the menu. The mouse turns and fires too; it is
+captured while you play and let go in the menus.
 
-F12, or Settings at the bottom of the Control menu, has the rest: which
-game, the window's size and shape (4:3 as DOS showed it, or square pixels),
-the music and effects levels, whether the mouse walks as well as turns,
-always running, holding on to the pointer, and the keys that strafe left
-and right (, and . to begin with). They take effect at once. With more than
+Settings, on the main menu or F12, has everything there is to set, a page
+each: which game, the window's size and shape (4:3 as DOS showed it, or
+square pixels), the sound devices and the music and effects levels, every
+key (strafe left and right are , and . to begin with), and the mouse --
+on or off, sensitivity, whether it walks as well as turns, its buttons --
+with always running, controller vibration and holding on to the pointer.
+They take effect at once. With more than
 one game in the data directory, New Game asks which to play first.
 WOLF_SCALE, WOLF_ASPECT=square and WOLF_NOGRAB=1 set the same things from
 outside until they are changed there.

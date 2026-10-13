@@ -57,7 +57,7 @@ CP_iteminfo
 	MainItems={MENU_X,MENU_Y,10,STARTITEM,24},
 	SndItems={SM_X,SM_Y1,12,0,52},
 	LSItems={LSM_X,LSM_Y,10,0,24},
-	CtlItems={CTL_X,CTL_Y,7,-1,56},
+	CtlItems={CTL_X,CTL_Y,6,-1,56},
 	CusItems={8,CST_Y+13*2,9,-1,0},
 	NewEitems={NE_X,NE_Y,11,0,88},
 	NewItems={NM_X,NM_Y,4,2,24};
@@ -80,8 +80,8 @@ MainMenu[]=
 #else
 
 	{1,STR_NG,CP_NewGame},
-	{1,STR_SD,CP_Sound},
-	{1,STR_CL,CP_Control},
+	{1,STR_SD,SettingsSound},
+	{1,"Settings",CP_Settings},
 	{1,STR_LG,CP_LoadGame},
 	{0,STR_SG,CP_SaveGame},
 	{1,STR_CV,CP_ChangeView},
@@ -143,16 +143,14 @@ far CtlMenu[]=
 	{0,"",0},
 	{0,"",0},
 	{0,"",MouseSensitivity},
-	{1,"",CustomControls},
-	{1,"",CP_Settings}
+	{1,"",CustomControls}
 #else
 	{0,STR_MOUSEEN,0},
 	{0,STR_JOYEN,0},
 	{0,STR_PORT2,0},
 	{0,STR_GAMEPAD,0},
 	{0,STR_SENS,MouseSensitivity},
-	{1,STR_CUSTOM,CustomControls},
-	{1,"Settings",CP_Settings}
+	{1,STR_CUSTOM,CustomControls}
 #endif
 },
 
@@ -317,7 +315,7 @@ static byte
 					far ExtScanCodes[] =	// Scan codes with >1 char names
 					{
 	1,0xe,0xf,0x1d,0x2a,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,
-	0x3f,0x40,0x41,0x42,0x43,0x44,0x57,0x59,0x46,0x1c,0x36,
+	0x3f,0x40,0x41,0x42,0x43,0x44,0x57,0x58,0x46,0x1c,0x36,
 	0x37,0x38,0x47,0x49,0x4f,0x51,0x52,0x53,0x45,0x48,
 	0x50,0x4b,0x4d,0x00
 					},
@@ -375,7 +373,7 @@ void US_ControlPanel(byte scancode)
 			goto finishup;
 
 		case sc_F4:
-			CP_Sound();
+			SettingsSound(0);
 			goto finishup;
 
 		case sc_F5:
@@ -383,7 +381,7 @@ void US_ControlPanel(byte scancode)
 			goto finishup;
 
 		case sc_F6:
-			CP_Control();
+			CP_Settings(0);
 			goto finishup;
 
 		case sc_F12:
@@ -1907,7 +1905,7 @@ int CalibrateJoystick(void)
 void CP_Control(void)
 {
 	#define CTL_SPC	70
-	enum {MOUSEENABLE,JOYENABLE,USEPORT2,PADENABLE,MOUSESENS,CUSTOMIZE,SETTINGS};
+	enum {MOUSEENABLE,JOYENABLE,USEPORT2,PADENABLE,MOUSESENS,CUSTOMIZE};
 	int i,which;
 
 
@@ -1957,7 +1955,6 @@ void CP_Control(void)
 
 			case MOUSESENS:
 			case CUSTOMIZE:
-			case SETTINGS:
 				DrawCtlScreen();
 				MenuFadeIn();
 				WaitKeyUp();
@@ -2173,7 +2170,7 @@ void DrawCtlScreen(void)
  // PICK FIRST AVAILABLE SPOT
  //
  if (CtlItems.curpos<0 || !CtlMenu[CtlItems.curpos].active)
-   for (i=0;i<7;i++)
+   for (i=0;i<6;i++)
 	 if (CtlMenu[i].active)
 	 {
 	  CtlItems.curpos=i;
@@ -2189,11 +2186,16 @@ void DrawCtlScreen(void)
 //
 // SETTINGS
 //
-// The port's own (sys_settings.c): which game, the shape and size of the
-// picture, the music and effects levels, and how the mouse and controller
-// behave. A menu of pages, from the Control menu or F12. On a page, up and
-// down choose, left and right (or Enter) change, and a change is made at
-// once and kept when the page is left.
+// Everything there is to set, in one place: which game, the picture, the
+// sound, the keys, and the mouse and controller. It is the main menu's
+// Settings, where Control was, and F4, F6 and F12; the game's own Sound,
+// Control, Mouse Sensitivity and Customize screens are folded into it, and
+// the DOS joystick's settings, which nothing here reads, are gone.
+//
+// A page is a list of items, each a name and the value it sets. Up and down
+// choose; left and right (or Enter) change; Enter on a key waits for the
+// key it is to be. A change is made at once, and kept when the page is left:
+// the port's own in settings (sys_settings.c), the game's in its CONFIG.
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2209,30 +2211,72 @@ typedef struct
 {
 	char	*name;
 	int		kind;
-	int		which;			// a sys_setting, or for SK_GAME the game's index
+	int		*var;			// the value it sets
+	int		min,max;		// SK_KEY: min 0 if it may be no key at all
 	char	**choices;		// SK_CHOICE: what min..max are called
-	int		first;			// SK_CHOICE: the setting's min
+	void	(*changed)(int *var);	// after a change, to make it so
+	int		game;			// SK_GAME: which of SYS_GameKind
 } setitem_t;
+
+static	setitem_t	items[SET_MAX];
+static	int			numitems;
+static	int			pagey;			// the first item's y
 
 static	char		*shapenames[] = {"Square","4:3"};
 static	char		*scalenames[] = {"1x","2x","3x","4x","5x","6x"};
+static	char		*fxnames[] = {"Off","Speaker","AdLib"};
+static	char		*mbnames[] = {"Nothing","Fire","Strafe","Run","Open"};
 
+void	CP_Settings(int);
 void	SettingsGame(int);
-void	WriteConfig(void);
 void	SettingsPicture(int);
 void	SettingsSound(int);
-void	SettingsControls(int);
 void	SettingsKeys(int);
+void	SettingsMouse(int);
+void	WriteConfig(void);
 
 CP_iteminfo	SetItems={SET_X+16,SET_Y,5,0,24};
 CP_itemtype far SetMenu[]=
 {
 	{1,"Game",SettingsGame},
 	{1,"Picture",SettingsPicture},
-	{1,"Sound levels",SettingsSound},
-	{1,"Mouse and controller",SettingsControls},
-	{1,"Keys",SettingsKeys}
+	{1,"Sound",SettingsSound},
+	{1,"Keys",SettingsKeys},
+	{1,"Mouse and controller",SettingsMouse}
 };
+
+
+//
+// Building a page
+//
+static setitem_t *AddItem(char *name,int kind,int *var,int min,int max)
+{
+	setitem_t *item=&items[numitems++];
+
+	memset(item,0,sizeof(*item));
+	item->name=name;
+	item->kind=kind;
+	item->var=var;
+	item->min=min;
+	item->max=max;
+	return item;
+}
+
+static void SysChanged(int *var)
+{
+	SYS_SettingChanged((int)(var-sys_setting));
+}
+
+static setitem_t *AddSetting(char *name,int kind,int which)
+{
+	int min,max;
+	setitem_t *item;
+
+	SYS_SettingRange(which,&min,&max);
+	item=AddItem(name,kind,&sys_setting[which],min,max);
+	item->changed=SysChanged;
+	return item;
+}
 
 
 static void DrawSettingsTitle(char *title)
@@ -2288,9 +2332,9 @@ void CP_Settings(int unused)
 
 static void DrawSettingsItem(setitem_t *item,int y,int lit)
 {
-	int x=SET_X+24,v,i;
+	int x=SET_X+24,v,i,seg;
 
-	VWB_Bar(x,y,SET_W-40,13,BKGDCOLOR);
+	VWB_Bar(x,y,SET_X-8+SET_W-1-x,13,BKGDCOLOR);	// to the window's edge
 
 	SETFONTCOLOR(lit?HIGHLIGHT:TEXTCOLOR,BKGDCOLOR);
 	PrintX=x;
@@ -2300,44 +2344,45 @@ static void DrawSettingsItem(setitem_t *item,int y,int lit)
 	switch(item->kind)
 	{
 		case SK_ONOFF:
-			VWB_DrawPic(SET_VAL+40,y+1,sys_setting[item->which]?C_SELECTEDPIC:C_NOTSELECTEDPIC);
+			VWB_DrawPic(SET_VAL+40,y+1,*item->var?C_SELECTEDPIC:C_NOTSELECTEDPIC);
 			break;
 
 		case SK_LEVEL:
-			v=sys_setting[item->which];
+			v=*item->var-item->min;
+			seg=80/(item->max-item->min);
 			VWB_Bar(SET_VAL,y+2,82,9,TEXTCOLOR);
 			DrawOutline(SET_VAL,y+2,82,9,0,HIGHLIGHT);
 			for (i=0;i<v;i++)
-				VWB_Bar(SET_VAL+2+i*8,y+4,7,6,lit?READHCOLOR:READCOLOR);
+				VWB_Bar(SET_VAL+2+i*seg,y+4,seg-1,6,lit?READHCOLOR:READCOLOR);
 			break;
 
 		case SK_CHOICE:
 			PrintX=SET_VAL;
-			US_Print(item->choices[sys_setting[item->which]-item->first]);
+			US_Print(item->choices[*item->var-item->min]);
 			break;
 
 		case SK_KEY:
 			PrintX=SET_VAL;
-			US_Print(sys_setting[item->which]?(char *)IN_GetScanName(sys_setting[item->which]):"None");
+			US_Print(*item->var?(char *)IN_GetScanName(*item->var):"None");
 			break;
 
 		case SK_GAME:
 			VWB_DrawPic(SET_VAL+64,y+1,
-				SYS_IsGameNow(SYS_GameKind(item->which))?C_SELECTEDPIC:C_NOTSELECTEDPIC);
+				SYS_IsGameNow(SYS_GameKind(item->game))?C_SELECTEDPIC:C_NOTSELECTEDPIC);
 			break;
 	}
 	SETFONTCOLOR(TEXTCOLOR,BKGDCOLOR);
 }
 
-static void DrawSettingsPage(char *title,setitem_t *items,int n,int cur)
+static void DrawSettingsPage(char *title,int cur)
 {
 	int i;
 
 	DrawSettingsTitle(title);
-	DrawWindow(SET_X-8,SET_Y-5,SET_W,n*13+6,BKGDCOLOR);
-	for (i=0;i<n;i++)
-		DrawSettingsItem(&items[i],SET_Y+i*13,i==cur);
-	VWB_DrawPic(SET_X,SET_Y+cur*13-2,C_CURSOR1PIC);
+	DrawWindow(SET_X-8,pagey-5,SET_W,numitems*13+6,BKGDCOLOR);
+	for (i=0;i<numitems;i++)
+		DrawSettingsItem(&items[i],pagey+i*13,i==cur);
+	VWB_DrawPic(SET_X,pagey+cur*13-2,C_CURSOR1PIC);
 	VW_UpdateScreen();
 }
 
@@ -2366,7 +2411,7 @@ static void SwitchGame(const char *kind,boolean newgame)
 static void ChooseGame(setitem_t *item)
 {
 	static char	msg[96];
-	const char	*kind=SYS_GameKind(item->which);
+	const char	*kind=SYS_GameKind(item->game);
 
 	if (SYS_IsGameNow(kind))
 	{
@@ -2384,8 +2429,8 @@ static void ChooseGame(setitem_t *item)
 
 //
 // Wait for the key a binding is to have: Esc leaves it as it was. A key
-// the game already uses for something else is allowed, as it is in the
-// game's own Customize screen.
+// already used for something else is allowed, as the game's own Customize
+// screen allowed it.
 //
 static int ReadSettingKey(setitem_t *item,int y)
 {
@@ -2411,18 +2456,40 @@ static int ReadSettingKey(setitem_t *item,int y)
 		SD_PlaySound(ESCPRESSEDSND);
 		return 0;
 	}
-	sys_setting[item->which]=key;
+	*item->var=key;
 	ShootSnd();
 	return 1;
 }
 
-static void SettingsPage(char *title,setitem_t *items,int n)
+//
+// Step a value within its range, or with wrap round the end of it; returns
+// whether it changed
+//
+static int StepItem(setitem_t *item,int step,boolean wrap)
+{
+	int v=*item->var+step;
+
+	if (v>item->max)
+		v=wrap?item->min:item->max;
+	if (v<item->min)
+		v=wrap?item->max:item->min;
+	if (v==*item->var)
+		return 0;
+
+	*item->var=v;
+	if (item->changed)
+		item->changed(item->var);
+	return 1;
+}
+
+static void SettingsPage(char *title)
 {
 	ControlInfo ci;
 	setitem_t *item;
-	int cur=0,exit=0,step,changed=0,s;
+	int cur=0,exit=0,step,changed=0,n=numitems,y;
 
-	DrawSettingsPage(title,items,n,cur);
+	pagey=n>7?44:SET_Y;
+	DrawSettingsPage(title,cur);
 	MenuFadeIn();
 	WaitKeyUp();
 
@@ -2430,17 +2497,18 @@ static void SettingsPage(char *title,setitem_t *items,int n)
 	{
 		ReadAnyControl(&ci);
 		item=&items[cur];
+		y=pagey+cur*13;
 		step=0;
 
 		switch(ci.dir)
 		{
 			case dir_North:
 			case dir_South:
-				DrawSettingsItem(item,SET_Y+cur*13,0);
-				VWB_Bar(SET_X-1,SET_Y+cur*13-2,24,16,BKGDCOLOR);
+				DrawSettingsItem(item,y,0);
+				VWB_Bar(SET_X-1,y-2,24,16,BKGDCOLOR);
 				cur=(cur+(ci.dir==dir_North?n-1:1))%n;
-				DrawSettingsItem(&items[cur],SET_Y+cur*13,1);
-				VWB_DrawPic(SET_X,SET_Y+cur*13-2,C_CURSOR1PIC);
+				DrawSettingsItem(&items[cur],pagey+cur*13,1);
+				VWB_DrawPic(SET_X,pagey+cur*13-2,C_CURSOR1PIC);
 				VW_UpdateScreen();
 				SD_PlaySound(MOVEGUN1SND);
 				TicDelay(20);
@@ -2458,51 +2526,46 @@ static void SettingsPage(char *title,setitem_t *items,int n)
 		if (ci.button0 || Keyboard[sc_Space] || Keyboard[sc_Enter])
 			step=2;
 
-		if (step==2 && item->kind==SK_KEY)
-		{
-			WaitKeyUp();
-			changed|=ReadSettingKey(item,SET_Y+cur*13);
-			DrawSettingsItem(item,SET_Y+cur*13,1);
-			VW_UpdateScreen();
-			WaitKeyUp();
-			IN_ClearKeysDown();
-		}
-		else if (step && item->kind==SK_KEY)
-		{
-			// Left clears the key; right does nothing
-			if (step<0 && sys_setting[item->which])
-			{
-				sys_setting[item->which]=0;
-				changed=1;
-				DrawSettingsItem(item,SET_Y+cur*13,1);
-				VW_UpdateScreen();
-				SD_PlaySound(MOVEGUN1SND);
-			}
-			TicDelay(20);
-		}
-		else if (step && item->kind==SK_GAME)
+		if (!step)
+			;
+		else if (item->kind==SK_GAME)
 		{
 			if (step==2)
 			{
 				WaitKeyUp();
 				ChooseGame(item);
-				DrawSettingsPage(title,items,n,cur);
+				DrawSettingsPage(title,cur);
 				WaitKeyUp();
 			}
 		}
-		else if (step)
+		else if (item->kind==SK_KEY)
 		{
-			s=item->which;
-			if (step!=2)
-				changed|=SYS_StepSetting(s,step);
-			else if (item->kind!=SK_LEVEL)
+			if (step==2)
 			{
-				// Enter goes round: on to the next, or back to the first
-				if (!SYS_StepSetting(s,1))
-					SYS_StepSetting(s,-100);
-				changed=1;
+				WaitKeyUp();
+				changed|=ReadSettingKey(item,y);
+				WaitKeyUp();
+				IN_ClearKeysDown();
 			}
-			DrawSettingsItem(item,SET_Y+cur*13,1);
+			else if (step<0 && !item->min && *item->var)
+			{
+				// Left clears a key that may be none
+				*item->var=0;
+				changed=1;
+				SD_PlaySound(MOVEGUN1SND);
+			}
+			DrawSettingsItem(item,y,1);
+			VW_UpdateScreen();
+			if (step!=2)
+				TicDelay(20);
+		}
+		else
+		{
+			if (step!=2)
+				changed|=StepItem(item,step,false);
+			else if (item->kind!=SK_LEVEL)
+				changed|=StepItem(item,1,true);	// Enter goes round
+			DrawSettingsItem(item,y,1);
 			VW_UpdateScreen();
 			SD_PlaySound(MOVEGUN1SND);		// at the new effects level
 			if (step==2)
@@ -2517,99 +2580,115 @@ static void SettingsPage(char *title,setitem_t *items,int n)
 	} while(!exit);
 
 	if (changed)
+	{
 		SYS_SaveSettings();
+		WriteConfig();
+	}
 
 	SD_PlaySound(ESCPRESSEDSND);
 	WaitKeyUp();
 	MenuFadeOut();
 }
 
+
+//
+// THE PAGES
+//
 void SettingsGame(int unused)
 {
-	setitem_t	items[SET_MAX];
-	int			i,n=SYS_NumGames();
+	int i,n=SYS_NumGames();
 
-	if (n>SET_MAX)
-		n=SET_MAX;
-	for (i=0;i<n;i++)
-	{
-		items[i].name=(char *)SYS_GameTitle(SYS_GameKind(i));
-		items[i].kind=SK_GAME;
-		items[i].which=i;
-	}
-	SettingsPage("Game",items,n);
+	numitems=0;
+	for (i=0;i<n && i<SET_MAX;i++)
+		AddItem((char *)SYS_GameTitle(SYS_GameKind(i)),SK_GAME,NULL,0,0)->game=i;
+	SettingsPage("Game");
 }
 
 void SettingsPicture(int unused)
 {
-	setitem_t	items[2];
-	int			n=0;
-
-	items[n].name="Shape";
-	items[n].kind=SK_CHOICE;
-	items[n].which=set_shape;
-	items[n].choices=shapenames;
-	items[n++].first=0;
-
+	numitems=0;
+	AddSetting("Shape",SK_CHOICE,set_shape)->choices=shapenames;
 	// The browser's page is as big as its window; a desktop's is chosen
 	if (!SYS_InBrowser())
-	{
-		items[n].name="Window size";
-		items[n].kind=SK_CHOICE;
-		items[n].which=set_scale;
-		items[n].choices=scalenames;
-		items[n++].first=1;
-	}
-	SettingsPage("Picture",items,n);
+		AddSetting("Window size",SK_CHOICE,set_scale)->choices=scalenames;
+	SettingsPage("Picture");
+}
+
+//
+// The sound devices, as the game's own Sound menu set them. The Sound
+// Source, which never answers, is not offered.
+//
+static int fxdevice,digion,musicon;
+
+static void FxChanged(int *var)
+{
+	SD_WaitSoundDone();
+	SD_SetSoundMode(fxdevice);
+	if (fxdevice!=sdm_Off)
+		CA_LoadAllSounds();
+	fxdevice=SoundMode;
+}
+
+static void DigiChanged(int *var)
+{
+	SD_SetDigiDevice(digion?sds_SoundBlaster:sds_Off);
+	digion=DigiMode!=sds_Off;
+}
+
+static void MusicChanged(int *var)
+{
+	SD_SetMusicMode(musicon?smm_AdLib:smm_Off);
+	musicon=MusicMode!=smm_Off;
+	if (musicon)
+		StartCPMusic(MENUSONG);
 }
 
 void SettingsSound(int unused)
 {
-	setitem_t	items[2];
+	fxdevice=SoundMode;
+	digion=DigiMode!=sds_Off;
+	musicon=MusicMode!=smm_Off;
 
-	items[0].name="Music";
-	items[0].kind=SK_LEVEL;
-	items[0].which=set_music;
-	items[1].name="Effects";
-	items[1].kind=SK_LEVEL;
-	items[1].which=set_effects;
-	SettingsPage("Sound levels",items,2);
+	numitems=0;
+	AddItem("Sound effects",SK_CHOICE,&fxdevice,sdm_Off,sdm_AdLib)->choices=fxnames;
+	AddItem("Digitized sounds",SK_ONOFF,&digion,0,1)->changed=DigiChanged;
+	items[0].changed=FxChanged;
+	AddItem("Music",SK_ONOFF,&musicon,0,1)->changed=MusicChanged;
+	AddSetting("Music level",SK_LEVEL,set_music);
+	AddSetting("Effects level",SK_LEVEL,set_effects);
+	SettingsPage("Sound");
 }
 
 void SettingsKeys(int unused)
 {
-	setitem_t	items[2];
-
-	items[0].name="Strafe left";
-	items[0].kind=SK_KEY;
-	items[0].which=set_strafeleft;
-	items[1].name="Strafe right";
-	items[1].kind=SK_KEY;
-	items[1].which=set_straferight;
-	SettingsPage("Keys",items,2);
+	numitems=0;
+	AddItem("Forward",SK_KEY,&dirscan[di_north],1,0x7f);
+	AddItem("Backward",SK_KEY,&dirscan[di_south],1,0x7f);
+	AddItem("Turn left",SK_KEY,&dirscan[di_west],1,0x7f);
+	AddItem("Turn right",SK_KEY,&dirscan[di_east],1,0x7f);
+	AddSetting("Strafe left",SK_KEY,set_strafeleft);
+	AddSetting("Strafe right",SK_KEY,set_straferight);
+	AddItem("Fire",SK_KEY,&buttonscan[bt_attack],1,0x7f);
+	AddItem("Open",SK_KEY,&buttonscan[bt_use],1,0x7f);
+	AddItem("Run",SK_KEY,&buttonscan[bt_run],1,0x7f);
+	AddItem("Strafe (held)",SK_KEY,&buttonscan[bt_strafe],1,0x7f);
+	SettingsPage("Keys");
 }
 
-void SettingsControls(int unused)
+void SettingsMouse(int unused)
 {
-	setitem_t	items[4];
-	int			n=0;
-
-	items[n].name="Mouse walks";
-	items[n].kind=SK_ONOFF;
-	items[n++].which=set_mousewalks;
-	items[n].name="Always run";
-	items[n].kind=SK_ONOFF;
-	items[n++].which=set_alwaysrun;
-	items[n].name="Vibration";
-	items[n].kind=SK_ONOFF;
-	items[n++].which=set_vibration;
+	numitems=0;
+	AddItem("Mouse",SK_ONOFF,(int *)&mouseenabled,0,1);
+	AddItem("Sensitivity",SK_LEVEL,&mouseadjustment,0,9);
+	AddSetting("Mouse walks",SK_ONOFF,set_mousewalks);
+	AddItem("Left button",SK_CHOICE,&buttonmouse[0],bt_nobutton,bt_use)->choices=mbnames;
+	AddItem("Right button",SK_CHOICE,&buttonmouse[1],bt_nobutton,bt_use)->choices=mbnames;
+	AddItem("Middle button",SK_CHOICE,&buttonmouse[2],bt_nobutton,bt_use)->choices=mbnames;
+	AddSetting("Always run",SK_ONOFF,set_alwaysrun);
+	AddSetting("Vibration",SK_ONOFF,set_vibration);
 	if (!SYS_InBrowser())
-	{
-		items[n].name="Hold the pointer";
-		items[n].kind=SK_ONOFF;
-		items[n++].which=set_capture;
-	}
-	SettingsPage("Mouse and controller",items,n);
+		AddSetting("Hold the pointer",SK_ONOFF,set_capture);
+	SettingsPage("Mouse and controller");
 }
 
 

@@ -114,24 +114,25 @@ void SYS_SaveSettings (void)
 }
 
 //
-// Change one setting by a step, within its range, and make it so.
-// Returns whether it changed.
+// What a setting may be, for the Settings pages to keep it within
 //
-int SYS_StepSetting (int which, int step)
+void SYS_SettingRange (int which, int *min, int *max)
 {
-	int	old = sys_setting[which];
+	*min = setinfo[which].min;
+	*max = setinfo[which].max;
+}
 
-	sys_setting[which] += step;
+//
+// A setting was changed on the Settings pages: make it so
+//
+void SYS_SettingChanged (int which)
+{
 	Clamp (which);
-	if (sys_setting[which] == old)
-		return 0;
-
 	if (which == set_shape || which == set_scale)
 	{
 		SYS_Resize ();
 		SYS_PadSayAspect ();
 	}
-	return 1;
 }
 
 //

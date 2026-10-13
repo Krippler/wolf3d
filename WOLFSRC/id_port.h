@@ -262,7 +262,8 @@ enum
 extern	int		sys_setting[SET_COUNT];
 void	SYS_LoadSettings (void);
 void	SYS_SaveSettings (void);
-int		SYS_StepSetting (int which, int step);
+void	SYS_SettingRange (int which, int *min, int *max);
+void	SYS_SettingChanged (int which);
 int		SYS_InBrowser (void);
 int		SYS_NumGames (void);
 const char *SYS_GameKind (int i);

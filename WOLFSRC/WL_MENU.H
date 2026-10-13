@@ -64,7 +64,7 @@
 #define CTL_X	24
 #define CTL_Y	70
 #define CTL_W	284
-#define CTL_H	13*8-7
+#define CTL_H	13*7-7
 
 #define LSM_X	85
 #define LSM_Y	55
@@ -184,6 +184,7 @@ int  CP_CheckQuick(unsigned scancode);
 void CustomControls(void);
 void MouseSensitivity(void);
 void CP_Settings(int unused);
+void SettingsSound(int unused);
 extern boolean cp_startnewgame;
 
 void CheckForEpisodes(void);

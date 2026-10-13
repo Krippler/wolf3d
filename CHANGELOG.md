@@ -5,6 +5,24 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [1.2.0] — 2026-10-13
+
+### Changed
+
+- Settings is the one place for everything there is to set, and the main
+  menu's Control is Settings. Its Sound page has the sound devices as well
+  as the levels; its Keys page every key -- forward, backward, turning,
+  strafing, fire, open, run and the strafe button; its Mouse and controller
+  page the mouse on or off, its sensitivity and its buttons, beside always
+  run, vibration and the pointer. F4 opens its Sound page, F6 and F12 the
+  menu. The game's own Sound, Control, Mouse Sensitivity and Customize
+  screens are folded into it, and the DOS joystick's settings, which did
+  nothing here, are gone.
+
+### Fixed
+
+- F12 is named F12 when it is bound to something.
+
 ## [1.1.0] — 2026-10-13
 
 ### Changed
