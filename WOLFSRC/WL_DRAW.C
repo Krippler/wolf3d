@@ -1735,6 +1735,13 @@ static void MapLine (int x1, int y1, int x2, int y2, int thick, byte color)
 	}
 }
 
+// The sine table's negatives are the sign and the size, as FixedByFrac
+// takes them, not two's complement (BuildTables)
+static int32_t MapSine (fixed v)
+{
+	return v & 0x80000000u ? -(int32_t)(v & 0x7fffffff) : (int32_t)v;
+}
+
 static boolean MapSolid (int x, int y)
 {
 	byte	tile;
@@ -1807,8 +1814,8 @@ static void DrawAutomap (void)
 	//
 	// the player: an arrow the way the player faces, as DOOM drew it
 	//
-	ax = costable[player->angle];		// FRACUNIT long
-	ay = -sintable[player->angle];		// the map's y is south
+	ax = MapSine (costable[player->angle]);		// FRACUNIT long
+	ay = -MapSine (sintable[player->angle]);	// the map's y is south
 	lx = (int)(((int64_t)ax * ts) >> 17);	// half a tile
 	ly = (int)(((int64_t)ay * ts) >> 17);
 	MapLine (cx-lx,cy-ly,cx+lx,cy+ly,thick,AM_PLAYER);
