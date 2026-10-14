@@ -35,6 +35,9 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.4.0
+- A full-screen view, as DOOM's: the whole width above the status bar, no border. New players start with it.
+
 ### 1.3.0
 - The view starts at its largest, and its size is under Settings - Picture.
 - Backspace opens the menu and backs out of it, as Esc does.
