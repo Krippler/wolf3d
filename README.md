@@ -84,7 +84,7 @@ Sound page, <kbd>F6</kbd> to the menu too). Its pages:
 | | |
 |---|---|
 | Game | which game to play, when there is more than one |
-| Picture | the view's size (the largest to begin with, as Change View sets it), 4:3 as DOS showed it or square pixels, and on a desktop the window's size |
+| Picture | the view's size -- largest of all, the full screen, to begin with: the whole width above the status bar, no border, as DOOM's -- 4:3 as DOS showed it or square pixels, and on a desktop the window's size |
 | Sound | the effects (AdLib, PC speaker or off), the digitized sounds, the music, and the music and effects levels apart |
 | Keys | forward, backward, turn left and right, strafe left and right (<kbd>,</kbd> and <kbd>.</kbd> to begin with), fire, open, run, and the strafe button |
 | Mouse and controller | the mouse on or off, its sensitivity, whether it walks as well as turns, what its buttons do; always run, controller vibration, and holding on to the pointer |

@@ -2609,7 +2609,7 @@ void SettingsPicture(int unused)
 	int oldview=viewsize;
 
 	numitems=0;
-	AddItem("View size",SK_LEVEL,&viewsize,4,19);
+	AddItem("View size",SK_LEVEL,&viewsize,4,20);
 	AddSetting("Shape",SK_CHOICE,set_shape)->choices=shapenames;
 	// The browser's page is as big as its window; a desktop's is chosen
 	if (!SYS_InBrowser())
@@ -3433,8 +3433,8 @@ void CP_ChangeView(void)
 		case dir_North:
 		case dir_East:
 			newview++;
-			if (newview>19)
-				newview=19;
+			if (newview>20)
+				newview=20;
 			ShowViewSize(newview);
 			VW_UpdateScreen();
 			SD_PlaySound(HITWALLSND);
