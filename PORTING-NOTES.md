@@ -411,10 +411,16 @@ the mouse and controller behaviour the port added.
 
 They have the game's own settings too, so that there is one place for all
 of it: the main menu's Control is Settings, and F4, F6 and F12 open it.
-The Picture page sets the view's size as Change View did, the largest it
-allowed to begin with (DOS's default was 15 of 19), and remakes the view
-once, on the way out. The Sound page sets the devices the Sound menu did,
-as it did; the Keys
+The Picture page sets the view's size as Change View did, and both go one
+size further than DOS let them: 20, the full screen -- 320 wide and all the
+160 lines above the status bar, with no border, as DOOM's largest was. The
+renderer took it as it was (`MAXVIEWWIDTH` was already 320, and
+`ReadConfig` already allowed 20); only the border drawing needed telling
+that there is no border to draw, rather than drawing its edge at x = -1
+and 320. It is the size to begin with (DOS's was 15). The view is remade
+once, on the way out of the page.
+
+The Sound page sets the devices the Sound menu did, as it did; the Keys
 page every key the Customize screen did, and the strafe keys; the Mouse
 page what the Control screen and Mouse Sensitivity did, and the mouse's
 buttons. The joystick settings went with them: the DOS joystick is not

@@ -164,7 +164,7 @@ void ReadConfig(void)
 
 		// A view size the menu could not have set breaks the renderer
 		if (viewsize < 4 || viewsize > 20)
-			viewsize = 19;
+			viewsize = 20;
 		if (mouseadjustment < 0 || mouseadjustment > 9)
 			mouseadjustment = 5;
 
@@ -202,7 +202,7 @@ void ReadConfig(void)
 		joystickport = 0;
 		joystickprogressive = false;
 
-		viewsize = 19;		// the largest the menu offers; DOS's default was 15
+		viewsize = 20;		// the full screen; DOS's default was 15
 		mouseadjustment=5;
 	}
 

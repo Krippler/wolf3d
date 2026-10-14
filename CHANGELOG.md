@@ -5,6 +5,15 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [1.4.0] — 2026-10-14
+
+### Added
+
+- A full-screen view, as DOOM's: one size past the largest DOS offered, the
+  picture fills the whole width above the status bar with no border. Change
+  View and Settings → Picture both reach it, and it is the size a new
+  player starts with.
+
 ## [1.3.0] — 2026-10-13
 
 ### Changed

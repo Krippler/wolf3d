@@ -37,7 +37,8 @@ Arrow keys move, Ctrl fires, Space opens doors, Alt strafes, Shift runs,
 captured while you play and let go in the menus.
 
 Settings, on the main menu or F12, has everything there is to set, a page
-each: which game, the view's size (the largest to begin with), the window's
+each: which game, the view's size (the full screen above the status bar,
+with no border, to begin with), the window's
 size and shape (4:3 as DOS showed it, or square pixels), the sound devices and the music and effects levels, every
 key (strafe left and right are , and . to begin with), and the mouse --
 on or off, sensitivity, whether it walks as well as turns, its buttons --
