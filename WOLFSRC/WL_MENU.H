@@ -184,6 +184,10 @@ int  CP_CheckQuick(unsigned scancode);
 void CustomControls(void);
 void MouseSensitivity(void);
 void CP_Settings(int unused);
+
+// HandleMenu's answer when the main menu, out of a game, is left alone
+#define MENU_IDLE			-2
+#define MENU_IDLESECONDS	30
 void SettingsSound(int unused);
 void SettingsPicture(int unused);
 extern boolean cp_startnewgame;

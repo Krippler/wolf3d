@@ -412,6 +412,10 @@ the mouse and controller behaviour the port added.
 They have the game's own settings too, so that there is one place for all
 of it: the main menu's Control is Settings, its Sound and Change View are
 gone as the same thing twice, and F4, F5, F6 and F12 open its pages.
+Back to Demo is gone too, out of a game, with Quit moved up into its place:
+`HandleMenu` returns `MENU_IDLE` when the main menu has had no key, mouse or
+controller for 30 seconds, and that is taken as Back to Demo was. In a game
+the item is still there, as Back to Game.
 The Picture page sets the view's size as Change View did, and both go one
 size further than DOS let them: 20, the full screen -- 320 wide and all the
 160 lines above the status bar, with no border, as DOOM's largest was. The

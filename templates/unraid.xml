@@ -35,6 +35,9 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.6.0
+- The main menu, left alone outside a game, goes back to the title screens and demos; Back to Demo is gone.
+
 ### 1.5.0
 - A resolution under Settings - Picture, 320x240 to 1920x1440, changeable while playing in the browser.
 - The main menu's Sound and Change View are gone: they are Settings' Sound and Picture pages (F4, F5).

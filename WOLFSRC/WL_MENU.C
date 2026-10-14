@@ -425,6 +425,10 @@ void US_ControlPanel(byte scancode)
 	do
 	{
 		which=HandleMenu(&MainItems,&MainMenu[0],NULL);
+		if (!ingame && which==backtodemo)
+			which=quit;				// Quit sits in Back to Demo's place
+		if (which==MENU_IDLE)
+			which=backtodemo;		// and the demos come back by themselves
 
 		#ifdef SPEAR
 		#ifndef SPEARDEMO
@@ -564,6 +568,24 @@ void US_ControlPanel(byte scancode)
 //
 void DrawMainMenu(void)
 {
+	//
+	// "BACK TO GAME" ONLY IN A GAME: OUT OF ONE, QUIT TAKES ITS PLACE, AND
+	// THE DEMOS COME BACK BY THEMSELVES (HandleMenu)
+	//
+	if (ingame)
+	{
+		MainItems.amount=quit+1;
+		_fstrcpy(MainMenu[backtodemo].string,STR_BD);
+		_fstrcpy(MainMenu[quit].string,STR_QT);
+	}
+	else
+	{
+		MainItems.amount=backtodemo+1;
+		_fstrcpy(MainMenu[backtodemo].string,STR_QT);
+	}
+	if (MainItems.curpos>=MainItems.amount)
+		MainItems.curpos=MainItems.amount-1;
+
 #ifdef JAPAN
 	CA_CacheScreen(S_OPTIONSPIC);
 #else
@@ -574,9 +596,9 @@ void DrawMainMenu(void)
 	VWB_DrawPic(84,0,C_OPTIONSPIC);
 
 	#ifdef SPANISH
-	DrawWindow(MENU_X-8,MENU_Y-3,MENU_W+8,MENU_H,BKGDCOLOR);
+	DrawWindow(MENU_X-8,MENU_Y-3,MENU_W+8,MainItems.amount*13+6,BKGDCOLOR);
 	#else
-	DrawWindow(MENU_X-8,MENU_Y-3,MENU_W,MENU_H,BKGDCOLOR);
+	DrawWindow(MENU_X-8,MENU_Y-3,MENU_W,MainItems.amount*13+6,BKGDCOLOR);
 	#endif
 #endif
 
@@ -606,11 +628,7 @@ void DrawMainMenu(void)
 	else
 	{
 		#ifndef JAPAN
-		#ifdef SPANISH
-		_fstrcpy(&MainMenu[backtodemo].string,STR_BD);
-		#else
-		_fstrcpy(&MainMenu[backtodemo].string[8],STR_DEMO);
-		#endif
+		// Quit, in Back to Demo's place: see the top of this
 		#else
 		CA_CacheGrChunk(C_MRETDEMOPIC);
 		VWB_DrawPic(12*8,20*8,C_MRETDEMOPIC);
@@ -3794,6 +3812,8 @@ int HandleMenu(CP_iteminfo *item_i,CP_itemtype far *items,void (*routine)(int w)
 	static int redrawitem=1,lastitem=-1;
 	int i,x,y,basey,exit,which,shape,timer;
 	ControlInfo ci;
+	boolean idles=items==MainMenu && !ingame;
+	time_t idlesince=time(NULL);
 
 
 	which=item_i->curpos;
@@ -3903,6 +3923,24 @@ int HandleMenu(CP_iteminfo *item_i,CP_itemtype far *items,void (*routine)(int w)
 		// GET INPUT
 		//
 		ReadAnyControl(&ci);
+
+		//
+		// THE MAIN MENU, OUT OF A GAME, LEFT ALONE: BACK TO THE DEMOS
+		//
+		if (idles)
+		{
+			for (i=0;i<NumCodes && !Keyboard[i];i++)
+				;
+			if (i<NumCodes || ci.dir!=dir_None || ci.button0 || ci.button1
+				|| ci.button2 || ci.button3)
+				idlesince=time(NULL);
+			else if (time(NULL)-idlesince>=MENU_IDLESECONDS)
+			{
+				IN_ClearKeysDown();
+				return MENU_IDLE;
+			}
+		}
+
 		switch(ci.dir)
 		{
 			////////////////////////////////////////////////
