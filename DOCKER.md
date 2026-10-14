@@ -38,7 +38,7 @@ engine's are a different shape, and it says so rather than loading nonsense.
 |---|---|---|
 | `PUID`, `PGID` | `1001` | Who the game runs as. The state directory is made theirs. 99 and 100 on Unraid. |
 | `WOLF_GAME` | | Which game to play when `/data` holds several: `wl6`, `sod`, `sd2`, `sd3`, `sdm` or `wl1`. Without it, the one last chosen under Settings → Game, or the first. |
-| `WOLF_SCALE` | `2` | The picture is 320x200 times this. The page scales it to the window either way; larger costs bandwidth. |
+| `WOLF_SCALE` | `2` | The resolution to begin with: the picture is 320x200 times this, 1 to 6. Settings → Picture changes it in the game, and from then on what was chosen there wins. The page scales it to the window either way; larger is sharper and costs bandwidth. |
 | `WOLF_ASPECT` | `4:3` | `square` draws square pixels rather than the 4:3 picture DOS showed. Settings → Picture changes it in the game, and from then on what was chosen there wins. |
 | `WOLF_SOUND` | `1` | `0` for no sound at all, saving the stream's bandwidth. |
 | `WOLF_AUDIO_RATE` | `22050` | The sound's rate, in Hz. About 700 kbit/s at the default; 11025 halves it, 44100 doubles it. |

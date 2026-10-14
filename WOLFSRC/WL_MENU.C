@@ -54,7 +54,7 @@ static	boolean		pickedgame;			// New Game: the game is already chosen
 static	void		SwitchGame(const char *kind,boolean newgame);
 
 CP_iteminfo
-	MainItems={MENU_X,MENU_Y,10,STARTITEM,24},
+	MainItems={MENU_X,MENU_Y,quit+1,STARTITEM,24},
 	SndItems={SM_X,SM_Y1,12,0,52},
 	LSItems={LSM_X,LSM_Y,10,0,24},
 	CtlItems={CTL_X,CTL_Y,6,-1,56},
@@ -68,11 +68,9 @@ MainMenu[]=
 {
 #ifdef JAPAN
 	{1,"",CP_NewGame},
-	{1,"",CP_Sound},
-	{1,"",CP_Control},
+	{1,"",CP_Settings},
 	{1,"",CP_LoadGame},
 	{0,"",CP_SaveGame},
-	{1,"",CP_ChangeView},
 	{2,"",CP_ReadThis},
 	{1,"",CP_ViewScores},
 	{1,"",0},
@@ -80,11 +78,9 @@ MainMenu[]=
 #else
 
 	{1,STR_NG,CP_NewGame},
-	{1,STR_SD,SettingsSound},
-	{1,"Settings",CP_Settings},
+	{1,"Settings",CP_Settings},		// Sound, Control and Change View, all in one
 	{1,STR_LG,CP_LoadGame},
 	{0,STR_SG,CP_SaveGame},
-	{1,STR_CV,CP_ChangeView},
 
 #ifndef GOODTIMES
 #ifndef SPEAR
@@ -377,7 +373,7 @@ void US_ControlPanel(byte scancode)
 			goto finishup;
 
 		case sc_F5:
-			CP_ChangeView();
+			SettingsPicture(0);
 			goto finishup;
 
 		case sc_F6:
@@ -2223,7 +2219,7 @@ static	int			numitems;
 static	int			pagey;			// the first item's y
 
 static	char		*shapenames[] = {"Square","4:3"};
-static	char		*scalenames[] = {"1x","2x","3x","4x","5x","6x"};
+static	char		scalename[6][16],*scalenames[6];
 static	char		*fxnames[] = {"Off","Speaker","AdLib"};
 static	char		*mbnames[] = {"Nothing","Fire","Strafe","Run","Open"};
 
@@ -2604,6 +2600,28 @@ void SettingsGame(int unused)
 	SettingsPage("Game");
 }
 
+//
+// The resolutions, 320x200 times 1 to 6, named as they are seen: 4:3 as a
+// monitor showed them, 320x240 the original, unless the pixels are square
+//
+static void NameResolutions(void)
+{
+	int i;
+
+	for (i=0;i<6;i++)
+	{
+		sprintf(scalename[i],"%dx%d",320*(i+1),(sys_setting[set_shape]?240:200)*(i+1));
+		scalenames[i]=scalename[i];
+	}
+}
+
+static void ShapeChanged(int *var)
+{
+	SysChanged(var);
+	NameResolutions();
+	DrawSettingsItem(&items[2],pagey+2*13,0);	// Resolution, renamed
+}
+
 void SettingsPicture(int unused)
 {
 	int oldview=viewsize;
@@ -2611,9 +2629,9 @@ void SettingsPicture(int unused)
 	numitems=0;
 	AddItem("View size",SK_LEVEL,&viewsize,4,20);
 	AddSetting("Shape",SK_CHOICE,set_shape)->choices=shapenames;
-	// The browser's page is as big as its window; a desktop's is chosen
-	if (!SYS_InBrowser())
-		AddSetting("Window size",SK_CHOICE,set_scale)->choices=scalenames;
+	items[numitems-1].changed=ShapeChanged;
+	AddSetting("Resolution",SK_CHOICE,set_scale)->choices=scalenames;
+	NameResolutions();
 	SettingsPage("Picture");
 
 	// The view is remade once, on the way out, as Change View did it

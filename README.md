@@ -77,14 +77,15 @@ savegame's name. In the browser, <kbd>Esc</kbd> gives the mouse back, and
 fires, B opens, Y changes weapon, the sticks walk and turn -- and vibrates
 when you are hit.
 
-Everything there is to set is under **Settings**, on the main menu where
-Control was, and on <kbd>F12</kbd> (<kbd>F4</kbd> goes straight to its
-Sound page, <kbd>F6</kbd> to the menu too). Its pages:
+Everything there is to set is under **Settings**, on the main menu in place
+of the game's Sound, Control and Change View, and on <kbd>F12</kbd> or
+<kbd>F6</kbd> (<kbd>F4</kbd> goes straight to its Sound page, <kbd>F5</kbd>
+to its Picture page). Its pages:
 
 | | |
 |---|---|
 | Game | which game to play, when there is more than one |
-| Picture | the view's size -- largest of all, the full screen, to begin with: the whole width above the status bar, no border, as DOOM's -- 4:3 as DOS showed it or square pixels, and on a desktop the window's size |
+| Picture | the view's size -- largest of all, the full screen, to begin with: the whole width above the status bar, no border, as DOOM's -- 4:3 as DOS showed it or square pixels, and the resolution, from 320x240 as it was to 1920x1440 (the browser's page fills its window at 4:3 whichever; a higher one is sharper and costs more bandwidth) |
 | Sound | the effects (AdLib, PC speaker or off), the digitized sounds, the music, and the music and effects levels apart |
 | Keys | forward, backward, turn left and right, strafe left and right (<kbd>,</kbd> and <kbd>.</kbd> to begin with), fire, open, run, and the strafe button |
 | Mouse and controller | the mouse on or off, its sensitivity, whether it walks as well as turns, what its buttons do; always run, controller vibration, and holding on to the pointer |

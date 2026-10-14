@@ -38,8 +38,9 @@ captured while you play and let go in the menus.
 
 Settings, on the main menu or F12, has everything there is to set, a page
 each: which game, the view's size (the full screen above the status bar,
-with no border, to begin with), the window's
-size and shape (4:3 as DOS showed it, or square pixels), the sound devices and the music and effects levels, every
+with no border, to begin with), the shape (4:3 as DOS showed it, or square
+pixels) and the resolution (320x240 as it was, up to 1920x1440), the sound
+devices and the music and effects levels, every
 key (strafe left and right are , and . to begin with), and the mouse --
 on or off, sensitivity, whether it walks as well as turns, its buttons --
 with always running, controller vibration and holding on to the pointer.

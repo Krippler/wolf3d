@@ -41,6 +41,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
 #include <X11/extensions/XShm.h>
@@ -671,15 +672,12 @@ static void ParseSize (void)
 	// Behind the browser the page does the stretching (sys_pad.c tells it
 	// which shape), so the picture crossing the network is a sixth smaller
 	// and the engine draws square pixels: WOLF_PAGE_ASPECT says so.
-	// The container's screen is made WOLF_SCALE times 320x200 before the
-	// game starts, so there the size is that, whatever settings says.
+	// The container's screen is as big as the largest resolution, and
+	// x11vnc is told to send only the part the window covers: see TellVNC.
 	if (SYS_InBrowser ())
-	{
-		const char	*env = getenv ("WOLF_SCALE");
-
 		aspect = 0;
-		scale = env && atoi (env) > 0 ? atoi (env) : 2;
-	}
+	if (scale < 1)
+		scale = 1;
 	if (scale > 6)
 		scale = 6;
 
@@ -744,6 +742,23 @@ static void MakeImage (Visual *visual, int depth)
 	image->data = calloc (1,image->bytes_per_line * winheight);
 }
 
+//
+// Behind the browser, x11vnc sends the part of the screen the window covers,
+// top left: a request on the root window's X11VNC_REMOTE property, which it
+// watches, changes that as the resolution changes.
+//
+static void TellVNC (void)
+{
+	char	cmd[64];
+
+	if (!SYS_InBrowser ())
+		return;
+	snprintf (cmd,sizeof(cmd),"cmd=clip:%dx%d+0+0",winwidth,winheight);
+	XChangeProperty (dpy,DefaultRootWindow (dpy),XInternAtom (dpy,"X11VNC_REMOTE",False),
+		XA_STRING,8,PropModeReplace,(unsigned char *)cmd,strlen (cmd));
+	XFlush (dpy);
+}
+
 static void SetSizeHints (void)
 {
 	XSizeHints	*hints;
@@ -793,6 +808,7 @@ static void Resize (void)
 	SetSizeHints ();
 	XResizeWindow (dpy,win,winwidth,winheight);
 	MakeImage (visual,depth);
+	TellVNC ();
 	shownonce = 0;
 
 	if (grabbed)
@@ -892,6 +908,7 @@ void SYS_Startup (void)
 	MakeImage (visual,depth);
 
 	XMapRaised (dpy,win);
+	TellVNC ();
 	XSetInputFocus (dpy,win,RevertToParent,CurrentTime);
 	XFlush (dpy);
 
