@@ -35,6 +35,10 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.5.0
+- A resolution under Settings - Picture, 320x240 to 1920x1440, changeable while playing in the browser.
+- The main menu's Sound and Change View are gone: they are Settings' Sound and Picture pages (F4, F5).
+
 ### 1.4.0
 - A full-screen view, as DOOM's: the whole width above the status bar, no border. New players start with it.
 
