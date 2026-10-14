@@ -410,7 +410,8 @@ pictures, so they look like the rest -- have those, the choice of game, and
 the mouse and controller behaviour the port added.
 
 They have the game's own settings too, so that there is one place for all
-of it: the main menu's Control is Settings, and F4, F6 and F12 open it.
+of it: the main menu's Control is Settings, its Sound and Change View are
+gone as the same thing twice, and F4, F5, F6 and F12 open its pages.
 The Picture page sets the view's size as Change View did, and both go one
 size further than DOS let them: 20, the full screen -- 320 wide and all the
 160 lines above the status bar, with no border, as DOOM's largest was. The
@@ -419,6 +420,14 @@ renderer took it as it was (`MAXVIEWWIDTH` was already 320, and
 that there is no border to draw, rather than drawing its edge at x = -1
 and 320. It is the size to begin with (DOS's was 15). The view is remade
 once, on the way out of the page.
+
+The resolution is the window's size, 320x200 times 1 to 6 and stretched to
+4:3. Behind the browser it works as well: the container's Xvfb is made as
+big as the largest, and the engine tells x11vnc which part to send by
+setting the `X11VNC_REMOTE` property on the root window to `cmd=clip:WxH+0+0`
+-- x11vnc's own remote control, which it watches -- whenever the window's
+size changes. x11vnc changes the size of what it sends, noVNC follows, and
+the page goes on filling its window at 4:3.
 
 The Sound page sets the devices the Sound menu did, as it did; the Keys
 page every key the Customize screen did, and the strafe keys; the Mouse

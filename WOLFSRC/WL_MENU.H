@@ -46,9 +46,9 @@
 #define MENU_Y	55
 #define MENU_W	178
 #ifndef SPEAR
-#define MENU_H	13*10+6
+#define MENU_H	13*8+6
 #else
-#define MENU_H	13*9+6
+#define MENU_H	13*7+6
 #endif
 
 #define SM_X	48
@@ -185,6 +185,7 @@ void CustomControls(void);
 void MouseSensitivity(void);
 void CP_Settings(int unused);
 void SettingsSound(int unused);
+void SettingsPicture(int unused);
 extern boolean cp_startnewgame;
 
 void CheckForEpisodes(void);
@@ -200,11 +201,9 @@ enum {MOUSE,JOYSTICK,KEYBOARDBTNS,KEYBOARDMOVE};	// FOR INPUT TYPES
 enum
 {
 	newgame,
-	soundmenu,
-	control,
+	settings,
 	loadgame,
 	savegame,
-	changeview,
 
 #ifndef GOODTIMES
 #ifndef SPEAR

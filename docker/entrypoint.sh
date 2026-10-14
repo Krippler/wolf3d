@@ -191,15 +191,19 @@ export WOLF_NOGRAB=1
 
 #
 # The display. 24-bit: the engine draws in truecolour from its palette.
-# Sized to the picture, so x11vnc has nothing else to send.
+# As big as the largest resolution in the game's Settings (6x); x11vnc sends
+# only the part the engine's window covers, which the engine tells it as
+# the resolution is changed (sys_x11.c, TellVNC).
 #
 WIDTH=$((320 * SCALE))
 HEIGHT=$((200 * SCALE))
+SCREEN_WIDTH=1920
+SCREEN_HEIGHT=1200
 export DISPLAY="$DISP"
 rm -f "/tmp/.X${DISP#:}-lock" "/tmp/.X11-unix/X${DISP#:}" 2>/dev/null || true
 
-log "starting Xvfb on $DISP at ${WIDTH}x${HEIGHT}"
-Xvfb "$DISP" -screen 0 "${WIDTH}x${HEIGHT}x24" -nolisten tcp >"$STATE/xvfb.log" 2>&1 &
+log "starting Xvfb on $DISP at ${SCREEN_WIDTH}x${SCREEN_HEIGHT}; the picture starts at ${WIDTH}x${HEIGHT}"
+Xvfb "$DISP" -screen 0 "${SCREEN_WIDTH}x${SCREEN_HEIGHT}x24" -nolisten tcp >"$STATE/xvfb.log" 2>&1 &
 XVFB_PID=$!
 
 i=0
@@ -227,7 +231,7 @@ fi
 log "starting x11vnc on port $VNC_PORT"
 # shellcheck disable=SC2086
 x11vnc -display "$DISP" -rfbport "$VNC_PORT" -forever -shared -quiet \
-       -nowireframe -noscrollcopyrect -nonap \
+       -nowireframe -noscrollcopyrect -nonap -clip "${WIDTH}x${HEIGHT}+0+0" \
        -wait "${WOLF_VNC_WAIT:-3}" -defer "${WOLF_VNC_DEFER:-3}" \
        ${WOLF_VNC_ARGS:-} \
        $vnc_auth >"$STATE/x11vnc.log" 2>&1 &

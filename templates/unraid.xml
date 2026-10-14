@@ -35,6 +35,10 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.5.0
+- A resolution under Settings - Picture, 320x240 to 1920x1440, changeable while playing in the browser.
+- The main menu's Sound and Change View are gone: they are Settings' Sound and Picture pages (F4, F5).
+
 ### 1.4.0
 - A full-screen view, as DOOM's: the whole width above the status bar, no border. New players start with it.
 
@@ -80,7 +84,7 @@
           Type="Variable" Display="always" Required="true" Mask="false">100</Config>
 
   <Config Name="Scale" Target="WOLF_SCALE" Default="2"
-          Description="Pixel scale, 1 to 4. The picture is 320x200 multiplied by this, so 2 gives 640x400. Larger values cost more bandwidth to the browser."
+          Description="The resolution to begin with, 1 to 6: the picture is 320x200 multiplied by this, so 2 gives 640x400. The game's Settings - Picture changes it while playing. Larger values are sharper and cost more bandwidth to the browser."
           Type="Variable" Display="always" Required="false" Mask="false">2</Config>
 
   <Config Name="Game" Target="WOLF_GAME" Default=""

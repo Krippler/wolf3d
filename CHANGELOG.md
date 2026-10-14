@@ -5,6 +5,19 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [1.5.0] — 2026-10-14
+
+### Added
+
+- A resolution on Settings → Picture, from 320x240 as DOS showed it to
+  1920x1440, always 4:3 and always the whole window; in the browser too,
+  where it was fixed when the container started.
+
+### Changed
+
+- No setting is in two places: the main menu's Sound and Change View are
+  gone, being Settings' Sound and Picture pages, which F4 and F5 open.
+
 ## [1.4.0] — 2026-10-14
 
 ### Added
