@@ -201,6 +201,7 @@ void SYS_PadKey (byte code, int extended, int down)
 void	SYS_PadStart (void);
 void	SYS_PadTick (void);
 static void Resize (void);
+static void TellVNC (void);
 static volatile int	resizewanted;
 
 static void KeyEvent (XKeyEvent *ev, int down)
@@ -641,6 +642,11 @@ static void *Machine (void *unused)
 		UpdateGrab ();
 		if (resizewanted)
 			Resize ();
+
+		// x11vnc may not have been watching yet when the window was made
+		// and it was first told the size: tell it again, once it must be
+		if (vblcount == 70*2 || vblcount == 70*6)
+			TellVNC ();
 		ScanOut ();
 
 		// Fell more than a few ticks behind -- the machine was suspended,

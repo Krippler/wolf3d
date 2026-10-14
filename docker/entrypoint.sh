@@ -195,8 +195,12 @@ export WOLF_NOGRAB=1
 # only the part the engine's window covers, which the engine tells it as
 # the resolution is changed (sys_x11.c, TellVNC).
 #
-WIDTH=$((320 * SCALE))
-HEIGHT=$((200 * SCALE))
+# The resolution chosen in the game's Settings, once there is one, wins over
+# WOLF_SCALE, as it does in the engine; x11vnc starts with it, so the first
+# picture is the size the engine's window will be.
+SAVED=$(sed -n 's/^scale \([1-6]\)$/\1/p' settings 2>/dev/null | tail -n 1)
+WIDTH=$((320 * ${SAVED:-$SCALE}))
+HEIGHT=$((200 * ${SAVED:-$SCALE}))
 SCREEN_WIDTH=1920
 SCREEN_HEIGHT=1200
 export DISPLAY="$DISP"

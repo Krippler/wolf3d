@@ -5,6 +5,17 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- The map's arrow became a line across the screen whenever the player
+  faced west or south of east.
+- In the browser, the picture could start at the wrong size -- a corner of
+  the page -- until the resolution was changed: the container's VNC server
+  now starts at the resolution last chosen, and the engine tells it again
+  once it is surely listening.
+
 ## [1.7.0] — 2026-10-14
 
 ### Added
