@@ -77,6 +77,10 @@ savegame's name. In the browser, <kbd>Esc</kbd> gives the mouse back, and
 fires, B opens, Y changes weapon, the sticks walk and turn -- and vibrates
 when you are hit.
 
+Left alone for half a minute outside a game, the main menu goes back to the
+title screens and the recorded demos by itself, so it has no Back to Demo;
+in a game it has Back to Game.
+
 Everything there is to set is under **Settings**, on the main menu in place
 of the game's Sound, Control and Change View, and on <kbd>F12</kbd> or
 <kbd>F6</kbd> (<kbd>F4</kbd> goes straight to its Sound page, <kbd>F5</kbd>

@@ -5,6 +5,14 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [Unreleased]
+
+### Changed
+
+- The main menu, left alone for 30 seconds outside a game, goes back to the
+  title screens and the demos by itself, and has no Back to Demo any more;
+  in a game, Back to Game is still there.
+
 ## [1.5.0] — 2026-10-14
 
 ### Added
