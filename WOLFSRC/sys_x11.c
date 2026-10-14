@@ -87,6 +87,24 @@ static	byte		shownscreen[320*200];
 static	byte		shownpal[768];
 static	int			shownonce;
 
+// The view drawn at a higher resolution, for each page it was drawn on:
+// see WL_DRAW.C and SYS_RenderBuffer
+typedef struct
+{
+	unsigned	page;			// the page's start address
+	int			used,valid;		// valid: finished, and not being redrawn
+	int			k,w,h;			// k times the view's w x h
+	int			x0,y0;			// where the view is on the 320x200 page
+	byte		*buf;			// w*k x h*k
+	byte		*low;			// w x h: what the page's view was made
+	size_t		bufsize;
+	unsigned	serial;
+} rframe_t;
+
+#define	RFRAMES		4
+static	rframe_t	rframes[RFRAMES];
+static	unsigned	rserial,shownserial;
+
 // The mouse, as INT 33h reported it
 static	int			mousedx,mousedy;
 static	int			mousebuttons;
@@ -381,8 +399,12 @@ static void ScanOut (void)
 {
 	byte		screen[320*200];
 	byte		pal[768];
-	unsigned	start;
-	int			x,y;
+	byte		line[1920];
+	static byte	blockok[200][20];	// 16 columns of a row still as drawn
+	static int	hxmap[1920];
+	unsigned	start,serial = 0;
+	rframe_t	*f = NULL;
+	int			x,y,i;
 
 	pthread_mutex_lock (&lock);
 	start = crtcstart;
@@ -402,32 +424,93 @@ static void ScanOut (void)
 				screen[y*320+x] = VGA_Ptr (a + (x>>2))[x&3];
 	}
 
+	//
+	// The view drawn sharper on this page, if it was. Held under the lock
+	// until it is shown, so the game cannot start drawing over it.
+	//
+	pthread_mutex_lock (&lock);
+	for (i = 0; i < RFRAMES; i++)
+		if (rframes[i].used && rframes[i].valid && rframes[i].page == start
+			&& rframes[i].k > 1)
+		{
+			f = &rframes[i];
+			serial = f->serial;
+		}
 	if (shownonce && !memcmp (screen,shownscreen,sizeof(screen))
-		&& !memcmp (pal,shownpal,768))
+		&& !memcmp (pal,shownpal,768) && serial == shownserial)
+	{
+		pthread_mutex_unlock (&lock);
 		return;
+	}
+	if (!f)
+		pthread_mutex_unlock (&lock);
 
 	memcpy (shownscreen,screen,sizeof(screen));
 	memcpy (shownpal,pal,768);
+	shownserial = serial;
 	shownonce = 1;
 
 	BuildPalette (pal);
 
+	//
+	// The sharper view is shown wherever the page's view is still as it
+	// was made from it: what was drawn over it since -- a message, the
+	// fizzle at the start of a level -- is shown from the page instead
+	//
+	if (f)
+	{
+		for (y = 0; y < f->h; y++)
+			for (x = 0; x < f->w; x += 16)
+				blockok[y][x>>4] = !memcmp (screen + (f->y0+y)*320 + f->x0 + x,
+					f->low + y*f->w + x,16);
+		for (x = 0; x < winwidth; x++)
+		{
+			i = x * 320 * f->k / winwidth - f->x0 * f->k;
+			hxmap[x] = i < 0 ? 0 : i >= f->w*f->k ? f->w*f->k-1 : i;
+		}
+	}
+
 	for (y = 0; y < winheight; y++)
 	{
-		byte		*src = screen + ymap[y]*320;
+		int			ly = ymap[y];
+		byte		*src = screen + ly*320;
 		char		*row = image->data + y*image->bytes_per_line;
+
+		for (x = 0; x < winwidth; x++)
+			line[x] = src[xmap[x]];
+
+		if (f && ly >= f->y0 && ly < f->y0 + f->h)
+		{
+			int		hy = y * 200 * f->k / winheight - f->y0 * f->k;
+			byte	*hrow,*ok = blockok[ly - f->y0];
+
+			if (hy < 0)
+				hy = 0;
+			if (hy >= f->h*f->k)
+				hy = f->h*f->k - 1;
+			hrow = f->buf + hy * f->w * f->k;
+			for (x = 0; x < winwidth; x++)
+			{
+				int	lx = xmap[x] - f->x0;
+
+				if (lx >= 0 && lx < f->w && ok[lx>>4])
+					line[x] = hrow[hxmap[x]];
+			}
+		}
 
 		if (image->bits_per_pixel == 32)
 		{
 			uint32_t	*dst = (uint32_t *)row;
 
 			for (x = 0; x < winwidth; x++)
-				dst[x] = pal32[src[xmap[x]]];
+				dst[x] = pal32[line[x]];
 		}
 		else
 			for (x = 0; x < winwidth; x++)
-				XPutPixel (image,x,y,pal32[src[xmap[x]]]);
+				XPutPixel (image,x,y,pal32[line[x]]);
 	}
+	if (f)
+		pthread_mutex_unlock (&lock);
 
 	if (useshm)
 		XShmPutImage (dpy,win,gc,image,0,0,0,0,winwidth,winheight,False);
@@ -600,6 +683,70 @@ void SYS_SetDisplay (unsigned crtc, int pelpan)
 	crtcstart = crtc;
 	shownow = 1;
 	pthread_cond_broadcast (&ticked);
+	pthread_mutex_unlock (&lock);
+}
+
+//
+// The view drawn at a higher resolution (WL_DRAW.C): a buffer for it to be
+// drawn in, k times w x h, for the page at that start address, and one for
+// the page's own view at w x h for the game to say what it made of it.
+// The page's frame is not shown until SYS_RenderDone.
+//
+int SYS_RenderScale (void)
+{
+	int	k = sys_setting[set_scale];
+
+	return k < 1 ? 1 : k > 6 ? 6 : k;
+}
+
+byte *SYS_RenderBuffer (unsigned page, int k, int w, int h, byte **low)
+{
+	rframe_t	*f = NULL;
+	size_t		size = (size_t)w*k*h*k + (size_t)w*h;
+	int			i;
+
+	pthread_mutex_lock (&lock);
+	for (i = 0; i < RFRAMES && !f; i++)
+		if (rframes[i].used && rframes[i].page == page)
+			f = &rframes[i];
+	for (i = 0; i < RFRAMES && !f; i++)
+		if (!rframes[i].used)
+			f = &rframes[i];
+	if (!f)
+		f = &rframes[0];
+	f->used = 1;
+	f->valid = 0;
+	f->page = page;
+	pthread_mutex_unlock (&lock);
+
+	if (f->bufsize < size)
+	{
+		free (f->buf);
+		if (!(f->buf = malloc (size)))
+			Quit ("Out of memory for the view's resolution");
+		f->bufsize = size;
+	}
+	f->k = k;
+	f->w = w;
+	f->h = h;
+	f->low = f->buf + (size_t)w*k*h*k;
+	*low = f->low;
+	return f->buf;
+}
+
+void SYS_RenderDone (unsigned page, int x0, int y0)
+{
+	int	i;
+
+	pthread_mutex_lock (&lock);
+	for (i = 0; i < RFRAMES; i++)
+		if (rframes[i].used && rframes[i].page == page)
+		{
+			rframes[i].x0 = x0;
+			rframes[i].y0 = y0;
+			rframes[i].serial = ++rserial;
+			rframes[i].valid = 1;
+		}
 	pthread_mutex_unlock (&lock);
 }
 

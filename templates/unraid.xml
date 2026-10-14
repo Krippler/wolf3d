@@ -35,6 +35,10 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.7.0
+- The view is drawn at the resolution chosen, sharper at each step; demos play out as before.
+- A map, as DOOM's, on Tab or a controller's View button; + and - zoom it.
+
 ### 1.6.0
 - The main menu, left alone outside a game, goes back to the title screens and demos; Back to Demo is gone.
 

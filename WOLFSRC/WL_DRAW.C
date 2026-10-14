@@ -43,6 +43,89 @@ unsigned	wallheight[MAXVIEWWIDTH];
 fixed	tileglobal	= TILEGLOBAL;
 fixed	mindist		= MINDIST;
 
+/*
+=============================================================================
+
+					THE VIEW AT A HIGHER RESOLUTION
+
+	The DOS game drew its view into the VGA page at 320x200's own pixels,
+	and so does everything else here. The view alone can be drawn sharper:
+	at renderscale times as many pixels each way, into renderbuf, with the
+	projection and the scalers made for that size (SetViewSize). While it
+	is drawn, viewwidth and viewheight are the larger size (RenderDims), so
+	the raycaster and the scalers, which go by them, need nothing else.
+
+	The frame is then shrunk into the VGA page as it would have been drawn
+	there, so everything that draws over the view, reads it or fizzles it
+	in goes on as before; and sys_x11.c shows the larger frame instead of
+	the page's view wherever the page still matches what was put there.
+
+	What the game decides by stays at 320 wide: an actor's viewx -- where
+	the gun aims and which way a guard is seen to face -- is worked out as
+	it always was, with logicscale; drawx is where it is drawn. Which tiles
+	are seen, and so which actors may be shot (FL_VISABLE), comes from the
+	original 320 rays, cast first without drawing (tracing), so a demo plays
+	out the same at any resolution.
+
+=============================================================================
+*/
+
+int			renderscale = 1;
+int			rviewwidth,rviewheight;
+int			rcenterx;
+fixed		logicscale;
+boolean		rendering;
+byte		*renderbuf;
+static	byte	*renderlow;
+int			lowpixelangle[320];	// the rays at 320 wide, which the game sees by
+static	boolean	tracing;		// casting them, drawing nothing
+static	int		lowviewwidth,lowviewheight;
+
+void RenderDims (boolean drawing)
+{
+	if (drawing)
+	{
+		lowviewwidth = viewwidth;
+		lowviewheight = viewheight;
+		viewwidth = rviewwidth;
+		viewheight = rviewheight;
+	}
+	else
+	{
+		viewwidth = lowviewwidth;
+		viewheight = lowviewheight;
+	}
+}
+
+static void RenderBegin (void)
+{
+	renderbuf = SYS_RenderBuffer (bufferofs-screenofs,renderscale,
+		viewwidth,viewheight,&renderlow);
+	rendering = true;
+	RenderDims (true);
+}
+
+static void RenderEnd (void)
+{
+	int		x,y,k = renderscale;
+	byte	*row,*low;
+
+	RenderDims (false);
+	rendering = false;
+
+	// The VGA page's view, as it would have been drawn at 320x200
+	for (y=0;y<viewheight;y++)
+	{
+		row = renderbuf + y*k*rviewwidth;
+		low = renderlow + y*viewwidth;
+		for (x=0;x<viewwidth;x++)
+			low[x] = *VGA_Pixel (bufferofs,SCREENBWIDE,x,y) = row[x*k];
+	}
+
+	SYS_RenderDone (bufferofs-screenofs,(320-viewwidth)/2,
+		(200-STATUSLINES-viewheight)/2);
+}
+
 
 //
 // math tables
@@ -195,7 +278,18 @@ static int HeightDiv (fixed nx)
 
 static int ProjectX (fixed ny, fixed nx)
 {
-	return centerx + (int32_t)((uint32_t)ny * (uint32_t)scale) / nx;
+	return centerx + (int32_t)((uint32_t)ny * (uint32_t)logicscale) / nx;
+}
+
+//
+// Where across the view it is drawn: at 320 wide the same, and above that
+// worked out in 64 bits, which the larger scale needs
+//
+static int DrawX (fixed ny, fixed nx)
+{
+	if (renderscale == 1)
+		return rcenterx + (int32_t)((uint32_t)ny * (uint32_t)scale) / nx;
+	return rcenterx + (int)(((int64_t)ny * scale) / nx);
 }
 
 //==========================================================================
@@ -264,6 +358,7 @@ void TransformActor (objtype *ob)
 	}
 
 	ob->viewx = ProjectX (ny,nx);
+	ob->drawx = DrawX (ny,nx);
 
 //
 // calculate height (heightnumerator/(nx>>8))
@@ -330,7 +425,7 @@ boolean TransformTile (int tx, int ty, int *dispx, int *dispheight)
 		return false;
 	}
 
-	*dispx = ProjectX (ny,nx);
+	*dispx = DrawX (ny,nx);
 
 //
 // calculate height (heightnumerator/(nx>>8))
@@ -401,6 +496,9 @@ unsigned	postwidth;
 void	near ScalePost (void)		// VGA version
 {
 	int			height;
+
+	if (tracing)
+		return;
 
 	height = wallheight[postx] >> 3;	// low 3 bits fractional
 	if (height > maxscale)
@@ -934,6 +1032,12 @@ void VGAClearScreen (void)
   // clear the screen: the ceiling colour over the top half of the view and
   // the floor's, 0x19, over the bottom
   //
+	if (rendering)
+	{
+		memset (renderbuf,ceiling,viewwidth*(viewheight/2));
+		memset (renderbuf+viewwidth*(viewheight/2),0x19,viewwidth*(viewheight/2));
+		return;
+	}
 	for (y=0;y<viewheight/2;y++)
 		memset (VGA_Pixel (bufferofs,SCREENBWIDE,0,y),ceiling,viewwidth);
 	for (;y<(viewheight/2)*2;y++)
@@ -1066,7 +1170,7 @@ void DrawScaleds (void)
 			if (!obj->viewheight)
 				continue;						// too close or far away
 
-			visptr->viewx = obj->viewx;
+			visptr->viewx = obj->drawx;
 			visptr->viewheight = obj->viewheight;
 			if (visptr->shapenum == -1)
 				visptr->shapenum = obj->temp1;	// special shape
@@ -1274,6 +1378,8 @@ static byte MapAt (word spot)
 
 static void SeeSpot (word spot)
 {
+	if (renderscale > 1 && !tracing)	// seen by the 320 rays alone
+		return;
 	if (spot < MAPSIZE*MAPSIZE)
 		((byte *)spotvis)[spot] = 1;
 }
@@ -1291,7 +1397,7 @@ void AsmRefresh (void)
 
 	for (pixx=0;pixx<viewwidth;pixx++)
 	{
-		angle = midangle + pixelangle[pixx];
+		angle = midangle + (tracing ? lowpixelangle : pixelangle)[pixx];
 		if (angle < 0)
 			angle += FINEANGLES;			// -90 is the same as 270
 		else if (angle >= DEG360)
@@ -1509,6 +1615,207 @@ void WallRefresh (void)
 
 //==========================================================================
 
+
+/*
+=============================================================================
+
+								THE AUTOMAP
+
+	DOOM's map, on Tab: the walls of every place seen so far, the doors,
+	and the player's arrow, north up and following the player, drawn over
+	the view while the game goes on. + and - zoom it.
+
+	It is drawn last, over the view the game has just drawn -- so the view
+	is worked out as ever, and what the game decides by it (FL_VISABLE)
+	does not change with the map open -- and at the view's resolution.
+
+	A place is seen once the rays have crossed it (spotvis). Which places
+	have been seen is not kept in a savegame; the map of a loaded game
+	starts from where the player stands.
+
+=============================================================================
+*/
+
+boolean		automapon;
+byte		mapseen[MAPSIZE][MAPSIZE];
+
+#define AM_BACK		0		// black
+#define AM_WALL		0x20	// red
+#define AM_DOOR		0x47	// yellow
+#define AM_GOLD		0xa4	// a door the gold key opens
+#define AM_SILVER	0x89	// and the silver
+#define AM_PLAYER	0x0f	// white
+
+// Tiles' sizes on the map, in 320x200's pixels
+static	int		mapzooms[] = {3,4,6,8,12,16};
+#define	NUMZOOMS	(sizeof(mapzooms)/sizeof(mapzooms[0]))
+static	int		mapzoom = 3;
+
+void AutomapSetup (void)
+{
+	automapon = false;
+	memset (mapseen,0,sizeof(mapseen));
+}
+
+void AutomapKeys (void)
+{
+	static boolean	tabheld,zoomheld;
+	boolean			in,out;
+
+	if (Keyboard[sc_Tab])
+	{
+		if (!tabheld)
+			automapon ^= true;
+		tabheld = true;
+	}
+	else
+		tabheld = false;
+
+	in = Keyboard[0x0d] || Keyboard[0x4e];		// = or keypad +
+	out = Keyboard[0x0c] || Keyboard[0x4a];		// - or keypad -
+	if (automapon && (in || out))
+	{
+		if (!zoomheld)
+		{
+			if (in && mapzoom < NUMZOOMS-1)
+				mapzoom++;
+			if (out && mapzoom > 0)
+				mapzoom--;
+		}
+		zoomheld = true;
+	}
+	else
+		zoomheld = false;
+}
+
+static void MapBar (int x, int y, int w, int h, byte color)
+{
+	if (x < 0)
+	{
+		w += x;
+		x = 0;
+	}
+	if (y < 0)
+	{
+		h += y;
+		y = 0;
+	}
+	if (x + w > viewwidth)
+		w = viewwidth - x;
+	if (y + h > viewheight)
+		h = viewheight - y;
+	if (w <= 0 || h <= 0)
+		return;
+	for (;h--;y++)
+		memset (renderbuf + y*viewwidth + x,color,w);
+}
+
+static void MapLine (int x1, int y1, int x2, int y2, int thick, byte color)
+{
+	int	dx = abs (x2-x1), sx = x1 < x2 ? 1 : -1;
+	int	dy = -abs (y2-y1), sy = y1 < y2 ? 1 : -1;
+	int	err = dx+dy,e2;
+
+	for (;;)
+	{
+		MapBar (x1-thick/2,y1-thick/2,thick,thick,color);
+		if (x1 == x2 && y1 == y2)
+			break;
+		e2 = 2*err;
+		if (e2 >= dy)
+		{
+			err += dy;
+			x1 += sx;
+		}
+		if (e2 <= dx)
+		{
+			err += dx;
+			y1 += sy;
+		}
+	}
+}
+
+static boolean MapSolid (int x, int y)
+{
+	byte	tile;
+
+	if (x < 0 || y < 0 || x >= MAPSIZE || y >= MAPSIZE)
+		return true;
+	tile = tilemap[x][y];
+	return tile && !(tile & 0x80);
+}
+
+static void DrawAutomap (void)
+{
+	int		ts = mapzooms[mapzoom]*renderscale;		// a tile, in pixels
+	int		thick = (renderscale+1)/2;
+	int		cx = viewwidth/2, cy = viewheight/2;
+	int		x,y,sx,sy;
+	int		px,py,ax,ay,lx,ly;
+	doorobj_t	*door;
+	byte	color;
+
+	MapBar (0,0,viewwidth,viewheight,AM_BACK);
+
+	// The map's (0,0), from the player's place in it
+	sx = cx - (int)(((int64_t)player->x * ts) >> TILESHIFT);
+	sy = cy - (int)(((int64_t)player->y * ts) >> TILESHIFT);
+
+	//
+	// a wall is drawn along each side it shows to a place that was seen
+	//
+	for (x=0;x<MAPSIZE;x++)
+		for (y=0;y<MAPSIZE;y++)
+		{
+			int	l = sx + x*ts, t = sy + y*ts;
+
+			if (!mapseen[x][y] || MapSolid (x,y))
+				continue;
+			if (l + ts < 0 || t + ts < 0 || l > viewwidth || t > viewheight)
+				continue;
+			if (MapSolid (x-1,y))
+				MapBar (l,t,thick,ts+thick,AM_WALL);
+			if (MapSolid (x+1,y))
+				MapBar (l+ts,t,thick,ts+thick,AM_WALL);
+			if (MapSolid (x,y-1))
+				MapBar (l,t,ts+thick,thick,AM_WALL);
+			if (MapSolid (x,y+1))
+				MapBar (l,t+ts,ts+thick,thick,AM_WALL);
+		}
+
+	//
+	// doors, across their places, coloured by the key they need
+	//
+	for (door = doorobjlist;door < lastdoorobj;door++)
+	{
+		int	l = sx + door->tilex*ts, t = sy + door->tiley*ts;
+
+		if (!mapseen[door->tilex][door->tiley])
+			continue;
+		switch (door->lock)
+		{
+		case dr_lock1: color = AM_GOLD; break;
+		case dr_lock2: color = AM_SILVER; break;
+		default: color = AM_DOOR; break;
+		}
+		if (door->vertical)
+			MapBar (l+ts/2,t,thick,ts+thick,color);
+		else
+			MapBar (l,t+ts/2,ts+thick,thick,color);
+	}
+
+	//
+	// the player: an arrow the way the player faces, as DOOM drew it
+	//
+	ax = costable[player->angle];		// FRACUNIT long
+	ay = -sintable[player->angle];		// the map's y is south
+	lx = (int)(((int64_t)ax * ts) >> 17);	// half a tile
+	ly = (int)(((int64_t)ay * ts) >> 17);
+	MapLine (cx-lx,cy-ly,cx+lx,cy+ly,thick,AM_PLAYER);
+	MapLine (cx+lx,cy+ly,cx+lx/3-ly/2,cy+ly/3+lx/2,thick,AM_PLAYER);
+	MapLine (cx+lx,cy+ly,cx+lx/3+ly/2,cy+ly/3-lx/2,thick,AM_PLAYER);
+}
+
 /*
 ========================
 =
@@ -1520,6 +1827,7 @@ void WallRefresh (void)
 void	ThreeDRefresh (void)
 {
 	int tracedir;
+	int	x,y;
 
 //
 // clear out the traced array
@@ -1529,8 +1837,20 @@ void	ThreeDRefresh (void)
 	bufferofs += screenofs;
 
 //
+// what the game sees by: the rays at 320 wide (see THE VIEW AT A HIGHER
+// RESOLUTION, above)
+//
+	if (renderscale > 1)
+	{
+		tracing = true;
+		WallRefresh ();
+		tracing = false;
+	}
+
+//
 // follow the walls from there to the right, drawwing as we go
 //
+	RenderBegin ();
 	VGAClearScreen ();
 
 	WallRefresh ();
@@ -1540,6 +1860,12 @@ void	ThreeDRefresh (void)
 //
 	DrawScaleds();			// draw scaled stuff
 	DrawPlayerWeapon ();	// draw player's hands
+	for (x=0;x<MAPSIZE;x++)		// seen, for the automap
+		for (y=0;y<MAPSIZE;y++)
+			mapseen[x][y] |= spotvis[x][y];
+	if (automapon)
+		DrawAutomap ();
+	RenderEnd ();
 
 //
 // show screen and time last cycle

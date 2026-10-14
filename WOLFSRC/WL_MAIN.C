@@ -1503,6 +1503,20 @@ boolean SetViewSize (unsigned width, unsigned height)
 	shootdelta = viewwidth/10;
 	screenofs = ((200-STATUSLINES-viewheight)/2*SCREENWIDTH+(320-viewwidth)/8);
 
+	//
+	// The view is drawn at the resolution chosen in Settings, renderscale
+	// times this; what the game decides by -- where the gun points, which
+	// way a guard faces -- stays at 320 wide, as it was (WL_DRAW.C)
+	//
+	logicscale = (viewwidth/2)*(double)(FOCALLENGTH+MINDIST)/(VIEWGLOBAL/2);
+	renderscale = SYS_RenderScale ();
+	CalcProjection (FOCALLENGTH);
+	memcpy (lowpixelangle,pixelangle,sizeof(lowpixelangle));
+	rviewwidth = viewwidth*renderscale;
+	rviewheight = viewheight*renderscale;
+	RenderDims (true);
+	rcenterx = viewwidth/2-1;
+
 //
 // calculate trace angles and projection constants
 //
@@ -1513,6 +1527,7 @@ boolean SetViewSize (unsigned width, unsigned height)
 //
 //	MM_BombOnError (false);
 	SetupScaling (viewwidth*1.5);
+	RenderDims (false);
 #if 0
 	MM_BombOnError (true);
 	if (mmerror)

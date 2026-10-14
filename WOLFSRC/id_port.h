@@ -239,6 +239,9 @@ void	SYS_SetPalette (const byte *palette);	// 768 bytes, 6 bits each
 void	SYS_GetPalette (byte *palette);
 void	SYS_SetBorder (int color);
 void	SYS_ShowNow (void);				// scan out now, not at the next tick
+int		SYS_RenderScale (void);			// the view's resolution: see WL_DRAW.C
+byte	*SYS_RenderBuffer (unsigned page, int k, int w, int h, byte **low);
+void	SYS_RenderDone (unsigned page, int x0, int y0);
 void	SYS_MouseDelta (int *dx, int *dy);
 int		SYS_MouseButtons (void);
 void	SYS_SetGrab (int wanted);

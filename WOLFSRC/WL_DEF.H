@@ -114,9 +114,9 @@
 #define MINDIST		(0x5800l)
 
 
-#define	MAXSCALEHEIGHT	256				// largest scale on largest view
+#define	MAXSCALEHEIGHT	(256*6)				// largest scale on largest view
 
-#define MAXVIEWWIDTH		320
+#define MAXVIEWWIDTH		(320*6)		// the view drawn at up to 6x: see WL_DRAW.C
 
 #define MAPSIZE		64					// maps are 64*64 max
 #define NORTH	0
@@ -662,8 +662,9 @@ typedef struct objstruct
 	unsigned	tilex,tiley;
 	byte		areanumber;
 
-	int	 		viewx;
-	unsigned	viewheight;
+	int	 		viewx;			// where it is across the view, at 320 wide: the gun aims by it
+	unsigned	viewheight;		// how tall it is drawn, at the drawing's resolution
+	int			drawx;			// where it is drawn, at the drawing's resolution
 	fixed		transx,transy;		// in global coord
 
 	int 		angle;
@@ -772,6 +773,20 @@ extern	int		    viewwidth;
 extern	int			viewheight;
 extern	int			centerx;
 extern	int			shootdelta;
+
+// The view drawn at the resolution chosen in Settings (WL_DRAW.C)
+extern	int			renderscale;			// 1 to 6
+extern	int			lowpixelangle[320];	// the rays at 320 wide, which the game sees by
+extern	int			rviewwidth,rviewheight;	// viewwidth and viewheight times that
+extern	int			rcenterx;
+extern	fixed		logicscale;				// scale at 320 wide, for viewx
+extern	boolean		rendering;				// in ThreeDRefresh: drawing goes to renderbuf
+extern	byte		*renderbuf;
+void	RenderDims (boolean drawing);
+
+extern	boolean		automapon;				// the map, on Tab (WL_DRAW.C)
+void	AutomapSetup (void);				// a new level
+void	AutomapKeys (void);
 
 extern	int			dirangle[9];
 

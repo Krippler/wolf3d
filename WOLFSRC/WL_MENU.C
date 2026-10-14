@@ -2652,8 +2652,9 @@ void SettingsPicture(int unused)
 	NameResolutions();
 	SettingsPage("Picture");
 
-	// The view is remade once, on the way out, as Change View did it
-	if (viewsize!=oldview)
+	// The view is remade once, on the way out, as Change View did it --
+	// and for a new resolution, which it is drawn at (WL_DRAW.C)
+	if (viewsize!=oldview || renderscale!=SYS_RenderScale())
 	{
 		int newview=viewsize;
 

@@ -627,6 +627,7 @@ void SetupGameLevel (void)
 	int	x,y,i;
 	word	far *map,tile,spot;
 
+	AutomapSetup ();
 
 	if (!loadedgame)
 	{
@@ -1126,6 +1127,7 @@ void Died (void)
 	int32_t	dx,dy;
 	int		iangle,curangle,clockwise,counter,change;
 
+	automapon = false;			// the death is seen in the view
 	gamestate.weapon = -1;			// take away weapon
 	SD_PlaySound (PLAYERDEATHSND);
 //
