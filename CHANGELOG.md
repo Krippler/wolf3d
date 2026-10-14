@@ -5,6 +5,23 @@ release will be: a pull request that renames it from `[Unreleased]` to
 `[X.Y.Z] — YYYY-MM-DD` and is merged publishes that release (see
 [PUBLISHING.md](PUBLISHING.md)).
 
+## [Unreleased]
+
+### Added
+
+- A map, as DOOM's: <kbd>Tab</kbd> (or a controller's View button) shows
+  the walls of every place seen so far, the doors -- gold and silver for
+  the locked ones -- and an arrow for the player, following as the game
+  goes on; <kbd>+</kbd> and <kbd>-</kbd> zoom it.
+
+### Fixed
+
+- The resolution on Settings → Picture made the window bigger but drew the
+  same 320x200 picture in it. The view is now drawn at the resolution
+  chosen -- walls, sprites and the weapon, sharper at each step -- while
+  the status bar and the menus stay the pictures they were, and what the
+  game decides by stays at 320 wide, so the demos play out as they did.
+
 ## [1.6.0] — 2026-10-14
 
 ### Changed

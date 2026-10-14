@@ -32,7 +32,8 @@
 //	Left bumper				strafe				(Alt)
 //	Right bumper, left
 //	  stick click			run					(Shift)
-//	Menu, View				the menu, back		(Esc)
+//	Menu					the menu, back		(Esc)
+//	View					the map				(Tab)
 //
 
 #include <netinet/in.h>
@@ -72,7 +73,7 @@ typedef struct
 	int		held;
 } padkey_t;
 
-enum {K_UP, K_DOWN, K_LEFT, K_RIGHT, K_FIRE, K_USE, K_STRAFE, K_RUN, K_ESC, NUMPADKEYS};
+enum {K_UP, K_DOWN, K_LEFT, K_RIGHT, K_FIRE, K_USE, K_STRAFE, K_RUN, K_ESC, K_MAP, NUMPADKEYS};
 
 static	padkey_t	keys[NUMPADKEYS] =
 {
@@ -82,6 +83,7 @@ static	padkey_t	keys[NUMPADKEYS] =
 	{0x38,0},		// Alt
 	{0x36,0},		// right Shift
 	{0x01,0},		// Esc
+	{0x0f,0},		// Tab
 };
 
 static	int		weaponheld;		// the scan code Y is holding, or 0
@@ -264,7 +266,8 @@ void SYS_PadTick (void)
 	want[K_USE] = (b & (1 << B_B | 1 << B_X)) != 0;
 	want[K_STRAFE] = (b & 1 << B_LB) != 0;
 	want[K_RUN] = (b & (1 << B_RB | 1 << B_LS | 1 << B_LT)) != 0;
-	want[K_ESC] = (b & (1 << B_MENU | 1 << B_VIEW)) != 0;
+	want[K_ESC] = (b & 1 << B_MENU) != 0;
+	want[K_MAP] = (b & 1 << B_VIEW) != 0;
 
 	for (i = 0; i < NUMPADKEYS; i++)
 		if (want[i] != keys[i].held)

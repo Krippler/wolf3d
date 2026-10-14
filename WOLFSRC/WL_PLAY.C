@@ -643,6 +643,8 @@ void CheckKeys (void)
 	if (screenfaded || demoplayback)	// don't do anything with a faded screen
 		return;
 
+	AutomapKeys ();
+
 	scan = LastScan;
 
 

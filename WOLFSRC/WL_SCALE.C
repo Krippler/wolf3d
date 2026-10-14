@@ -212,6 +212,13 @@ void ScaleColumn (t_compscale *comp, byte *page, unsigned ofs, int start, int en
 
 		color = page[(word)(ofs+src)];
 
+		if (rendering)		// the view at a higher resolution: WL_DRAW.C
+		{
+			for (row=top;row<bottom;row++)
+				memset (renderbuf+row*viewwidth+slinex,color,slinewidth);
+			continue;
+		}
+
 		for (row=top;row<bottom;row++)
 			for (x=0;x<slinewidth;x++)
 				*VGA_Pixel (bufferofs,SCREENBWIDE,slinex+x,row) = color;

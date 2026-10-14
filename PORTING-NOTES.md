@@ -433,6 +433,46 @@ setting the `X11VNC_REMOTE` property on the root window to `cmd=clip:WxH+0+0`
 size changes. x11vnc changes the size of what it sends, noVNC follows, and
 the page goes on filling its window at 4:3.
 
+The view itself is drawn at the resolution, not only shown at it: at 1x
+the window had been showing the 320x200 page, made bigger. Everything but
+the view -- the status bar, the menus, the intermissions -- is a 320x200
+picture and stays one; the view is drawn `renderscale` times as wide and
+high into a buffer of its own (`renderbuf`, one for each of the three
+pages, from `sys_x11.c`). `SetViewSize` makes the projection and the
+compiled scalers for that size, and while `ThreeDRefresh` draws,
+`viewwidth` and `viewheight` are the larger size (`RenderDims`), so the
+raycaster and the scalers, which go by them, needed little else: the
+floor and ceiling, and the one place a scaler writes a pixel
+(`ScaleColumn`), write to the buffer. `MAXVIEWWIDTH` and `MAXSCALEHEIGHT`
+are six times what they were.
+
+The frame is then shrunk into the VGA page, a pixel of each k by k, as it
+would have been drawn there, and a copy of that kept. So the page holds
+what it always held, and what draws over the view, reads it or fizzles it
+in works as before; the machine thread, scanning out, shows the larger
+frame in each 16 columns of a row where the page's view is still that
+copy, and the page where something has been drawn over it since -- a
+message, the fizzle into a level.
+
+What the game decides by stays at 320 wide, so a demo plays out the same
+at any resolution (checked by playing the shareware's demo at 1x and 6x to
+the same end: position, health, score, kills, ammo). An actor's `viewx`,
+which the gun aims by and a guard is seen facing by, is worked out with
+the 320-wide scale as before (`logicscale`); where it is drawn is `drawx`,
+in 64 bits, which the larger scale needs. Which tiles are seen
+(`spotvis`), and so which actors may be shot (`FL_VISABLE`), comes from
+the original 320 rays, cast first with nothing drawn (`tracing`); the
+drawing's own rays mark nothing.
+
+The map, on Tab, as DOOM's, is drawn into the same buffer, last, over the
+view -- so the view is still worked out each frame, and with it what the
+game decides by -- and so at the view's resolution. A place is seen once
+the 320 rays have crossed it; a wall is drawn along each side of a solid
+tile that faces a seen place, a door across its tile, coloured by its
+lock, and the player as DOOM's arrow, north up and at the map's middle.
+Which places were seen is not saved with a game. A controller's View
+button, which was a second Esc, is Tab now.
+
 The Sound page sets the devices the Sound menu did, as it did; the Keys
 page every key the Customize screen did, and the strafe keys; the Mouse
 page what the Control screen and Mouse Sensitivity did, and the mouse's

@@ -78,7 +78,8 @@ plays it as the keyboard, so the menus work with it too:
 | Y | next weapon |
 | Left bumper | strafe |
 | Right bumper, left trigger, left stick click | run |
-| Menu, View | the menu, and back out of it |
+| Menu | the menu, and back out of it |
+| View | the map |
 
 It vibrates when you are hit, where the browser can drive the pad's motors.
 
