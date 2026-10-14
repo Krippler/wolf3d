@@ -35,6 +35,10 @@
   <DonateLink/>
   <Requires>Nothing. The shareware episode ships with the container. Add your own game's files to the Game data folder to play the full game.</Requires>
   <Changes>
+### 1.7.1
+- The map's arrow no longer turns into a line when facing west or south.
+- In the browser the picture starts at the resolution last chosen, not in a corner of the page.
+
 ### 1.7.0
 - The view is drawn at the resolution chosen, sharper at each step; demos play out as before.
 - A map, as DOOM's, on Tab or a controller's View button; + and - zoom it.
